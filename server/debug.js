@@ -1,0 +1,9 @@
+try { require('dotenv'); console.log('dotenv ok'); } catch (e) { console.log('dotenv fail', e.message); }
+try { require('express'); console.log('express ok'); } catch (e) { console.log('express fail', e.message); }
+try { require('cors'); console.log('cors ok'); } catch (e) { console.log('cors fail', e.message); }
+try { require('mongoose'); console.log('mongoose ok'); } catch (e) { console.log('mongoose fail', e.message); }
+try { require('multer'); console.log('multer ok'); } catch (e) { console.log('multer fail', e.message); }
+try { require('pdf-parse'); console.log('pdf-parse ok'); } catch (e) { console.log('pdf-parse fail', e.message); }
+try { require('mammoth'); console.log('mammoth ok'); } catch (e) { console.log('mammoth fail', e.message); }
+try { require('axios'); console.log('axios ok'); } catch (e) { console.log('axios fail', e.message); }
+try { require('uuid'); console.log('uuid ok'); } catch (e) { console.log('uuid fail', e.message); }
