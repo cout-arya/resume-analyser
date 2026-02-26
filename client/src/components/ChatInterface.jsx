@@ -35,9 +35,14 @@ const ChatInterface = ({ sessionId, isReady }) => {
         setLoading(true);
 
         try {
+            const token = localStorage.getItem('token');
             const response = await axios.post('http://localhost:4000/api/chat', {
                 sessionId,
                 question: userMsg
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
 
             setMessages(prev => [...prev, {
