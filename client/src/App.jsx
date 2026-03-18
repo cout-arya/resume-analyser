@@ -4,25 +4,19 @@ import axios from 'axios';
 import { FileText, Briefcase, BrainCircuit, LogOut } from 'lucide-react';
 import UploadZone from './components/FileUpload';
 import ChatInterface from './components/ChatInterface';
-<<<<<<< HEAD
 import LandingPage from "./pages/LandingPage"
-=======
 import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './context/AuthContext';
->>>>>>> cae08a44e23b625479fd8eaaeeaf8f93ca7690e9
 
 function Analyzer() {
   const [sessionId, setSessionId] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
   const [jdFile, setJdFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-<<<<<<< HEAD
   const [showLanding, setShowLanding] = useState(true);
-=======
   const { logout, user } = useAuth();
->>>>>>> cae08a44e23b625479fd8eaaeeaf8f93ca7690e9
 
   // Checks if both files are uploaded and processed
   const isReady = !!sessionId && !!resumeFile && !!jdFile;
