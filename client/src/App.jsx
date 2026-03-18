@@ -3,12 +3,14 @@ import axios from 'axios';
 import { FileText, Briefcase, BrainCircuit } from 'lucide-react';
 import UploadZone from './components/FileUpload';
 import ChatInterface from './components/ChatInterface';
+import LandingPage from "./pages/LandingPage"
 
 function App() {
   const [sessionId, setSessionId] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
   const [jdFile, setJdFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
 
   // Checks if both files are uploaded and processed
   const isReady = !!sessionId && !!resumeFile && !!jdFile;
@@ -39,6 +41,9 @@ function App() {
       setUploading(false);
     }
   };
+  if (showLanding) {
+    return <LandingPage onStart={() => setShowLanding(false)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
