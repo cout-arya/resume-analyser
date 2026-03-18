@@ -1,16 +1,28 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
-import { FileText, Briefcase, BrainCircuit } from 'lucide-react';
+import { FileText, Briefcase, BrainCircuit, LogOut } from 'lucide-react';
 import UploadZone from './components/FileUpload';
 import ChatInterface from './components/ChatInterface';
+<<<<<<< HEAD
 import LandingPage from "./pages/LandingPage"
+=======
+import Login from './components/Auth/Login';
+import Signup from './components/Auth/Signup';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider, useAuth } from './context/AuthContext';
+>>>>>>> cae08a44e23b625479fd8eaaeeaf8f93ca7690e9
 
-function App() {
+function Analyzer() {
   const [sessionId, setSessionId] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
   const [jdFile, setJdFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+<<<<<<< HEAD
   const [showLanding, setShowLanding] = useState(true);
+=======
+  const { logout, user } = useAuth();
+>>>>>>> cae08a44e23b625479fd8eaaeeaf8f93ca7690e9
 
   // Checks if both files are uploaded and processed
   const isReady = !!sessionId && !!resumeFile && !!jdFile;
@@ -58,8 +70,15 @@ function App() {
               Smart Resume & JD Analyzer
             </h1>
           </div>
-          <div className="text-sm text-gray-500">
-            Powered by RAG & Llama 3.3
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-600 font-medium">Hi, {user?.username}</span>
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700 font-semibold p-2 hover:bg-red-50 rounded-lg transition-all"
+            >
+              <LogOut size={18} />
+              Logout
+            </button>
           </div>
         </div>
       </header>
@@ -117,6 +136,28 @@ function App() {
         </div>
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Analyzer />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 
