@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext } from 'react';
 import axios from 'axios';
+import { useAuth } from './AuthContext';
 
 const SessionContext = createContext();
 
@@ -14,7 +15,22 @@ export const SessionProvider = ({ children }) => {
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisError, setAnalysisError] = useState(null);
 
+    const { logout } = useAuth();
+
     const isReady = !!sessionId && !!resumeFile && !!jdFile;
+
+    /**
+     * Handle 401 errors by forcing re-login
+     */
+    const handle401 = (error) => {
+        if (error.response?.status === 401) {
+            alert('Session expired. Please log in again.');
+            logout();
+            window.location.href = '/login';
+            return true;
+        }
+        return false;
+    };
 
     const handleUpload = async (file, type) => {
         setUploading(true);
@@ -43,7 +59,9 @@ export const SessionProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Upload failed', error);
-            alert('Failed to upload file');
+            if (!handle401(error)) {
+                alert('Failed to upload file');
+            }
         } finally {
             setUploading(false);
         }
@@ -66,7 +84,9 @@ export const SessionProvider = ({ children }) => {
             setSkillGapData(skillGapRes.data);
         } catch (error) {
             console.error('Analysis failed', error);
-            setAnalysisError('Analysis failed. Please try again.');
+            if (!handle401(error)) {
+                setAnalysisError('Analysis failed. Please try again.');
+            }
         } finally {
             setAnalyzing(false);
         }
