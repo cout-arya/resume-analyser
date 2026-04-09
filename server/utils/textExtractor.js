@@ -24,7 +24,7 @@ async function extractText(buffer, mimetype) {
         }
     } catch (error) {
         console.error('Error extracting text:', error);
-        throw new Error('Failed to extract text from file.');
+        throw new Error(`Failed to extract text from file: ${error.message}`);
     }
 }
 

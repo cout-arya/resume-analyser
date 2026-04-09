@@ -4,6 +4,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
+const analyzeRoutes = require('./routes/analyzeRoutes');
 const path = require('path');
 
 const app = express();
@@ -16,6 +17,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/analyze', analyzeRoutes);
 
 // Database Connection (Optional for MVP core flow but good for logs)
 if (process.env.MONGO_URI) {

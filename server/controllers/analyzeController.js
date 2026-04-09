@@ -7,6 +7,25 @@ const mongoose = require('mongoose');
 // In-memory session store for MVP
 const sessions = {};
 
+/**
+ * Retrieve the raw resume and JD text for a session.
+ * Used by analyzeRoutes for ATS scoring and skill gap analysis.
+ */
+function getSessionTexts(sessionId) {
+    const session = sessions[sessionId];
+    if (!session) return null;
+
+    let resumeText = null;
+    let jdText = null;
+
+    for (const file of session.files) {
+        if (file.type === 'resume' && file.text) resumeText = file.text;
+        if (file.type === 'jd' && file.text) jdText = file.text;
+    }
+
+    return { resumeText, jdText };
+}
+
 exports.uploadHandler = async (req, res) => {
     try {
         const { sessionId } = req.body;
@@ -33,11 +52,12 @@ exports.uploadHandler = async (req, res) => {
         const docId = uuidv4();
         await vectorStore.addDocument(docId, text, type);
 
-        // Track file in session
+        // Track file in session (including extracted text for analysis)
         const fileInfo = {
             docId,
             filename: file.originalname,
             type,
+            text,
             uploadedAt: new Date()
         };
         sessions[currentSessionId].files.push(fileInfo);
@@ -62,7 +82,7 @@ exports.uploadHandler = async (req, res) => {
 
     } catch (error) {
         console.error('Upload error:', error);
-        res.status(500).json({ error: 'Failed to process file' });
+        res.status(500).json({ error: 'Failed to process file', detail: error.message });
     }
 };
 
@@ -136,3 +156,5 @@ Instructions:
         res.status(500).json({ error: 'Failed to generate answer' });
     }
 };
+
+exports.getSessionTexts = getSessionTexts;

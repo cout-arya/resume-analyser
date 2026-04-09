@@ -43,7 +43,7 @@ function Analyzer() {
       
       const [atsRes, skillGapRes] = await Promise.all([
         axios.post('http://localhost:4000/api/analyze/score', { sessionId }, config),
-        axios.post('http://localhost:4000/api/analyze/skill-gap', { sessionId }, config)
+        axios.post('http://localhost:4000/api/analyze/skills', { sessionId }, config)
       ]);
 
       setAtsData(atsRes.data);
