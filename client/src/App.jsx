@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FileText, Briefcase, BrainCircuit, LogOut } from 'lucide-react';
+import { FileText, Briefcase, BrainCircuit, LogOut, Loader2 } from 'lucide-react';
 import UploadZone from './components/FileUpload';
 import ChatInterface from './components/ChatInterface';
 import LandingPage from "./pages/LandingPage"
@@ -9,16 +9,52 @@ import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import ATSScoreCard from './components/ATSScoreCard';
+import SkillGapDashboard from './components/SkillGapDashboard';
 
 function Analyzer() {
   const [sessionId, setSessionId] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
   const [jdFile, setJdFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  
+  const [atsData, setAtsData] = useState(null);
+  const [skillGapData, setSkillGapData] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState(null);
+
   const { logout, user } = useAuth();
 
   // Checks if both files are uploaded and processed
   const isReady = !!sessionId && !!resumeFile && !!jdFile;
+
+  useEffect(() => {
+    if (isReady && !atsData && !analyzing && !analysisError) {
+      runAnalysis();
+    }
+  }, [isReady]);
+
+  const runAnalysis = async () => {
+    setAnalyzing(true);
+    setAnalysisError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
+      const [atsRes, skillGapRes] = await Promise.all([
+        axios.post('http://localhost:4000/api/analyze/score', { sessionId }, config),
+        axios.post('http://localhost:4000/api/analyze/skill-gap', { sessionId }, config)
+      ]);
+
+      setAtsData(atsRes.data);
+      setSkillGapData(skillGapRes.data);
+    } catch (error) {
+      console.error('Analysis failed', error);
+      setAnalysisError('Analysis failed. Please try again.');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const handleUpload = async (file, type) => {
     setUploading(true);
@@ -41,6 +77,13 @@ function Analyzer() {
         setSessionId(response.data.sessionId);
         if (type === 'resume') setResumeFile(file);
         if (type === 'jd') setJdFile(file);
+        
+        // Reset analysis if a new file is uploaded
+        if (isReady) {
+            setAtsData(null);
+            setSkillGapData(null);
+            setAnalysisError(null);
+        }
       }
     } catch (error) {
       console.error('Upload failed', error);
@@ -77,10 +120,10 @@ function Analyzer() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-[calc(100vh-4rem)]">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-          {/* Left Sidebar: Uploads */}
+          {/* Left Sidebar: Uploads and ATS Score */}
           <div className="lg:col-span-4 flex flex-col gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -111,19 +154,35 @@ function Analyzer() {
               </div>
             </div>
 
-            <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
-              <h3 className="font-semibold text-indigo-900 mb-2">How to use</h3>
-              <ul className="text-sm text-indigo-800 space-y-2 list-disc pl-4">
-                <li>Upload your formatted Resume.</li>
-                <li>Upload the Job Description you want to analyze.</li>
-                <li>Ask the AI Assistant questions about your fit, missing skills, or interview prep.</li>
-              </ul>
-            </div>
+            {/* ATS Score Card Component */}
+            {isReady && (analyzing || atsData) && (
+                <ATSScoreCard data={atsData} loading={analyzing} />
+            )}
+
+            {!isReady && (
+                <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+                  <h3 className="font-semibold text-indigo-900 mb-2">How to use</h3>
+                  <ul className="text-sm text-indigo-800 space-y-2 list-disc pl-4">
+                    <li>Upload your formatted Resume.</li>
+                    <li>Upload the Job Description you want to analyze.</li>
+                    <li>We will automatically generate your ATS score and skill gaps.</li>
+                    <li>Ask the AI Assistant questions about your fit, missing skills, or interview prep.</li>
+                  </ul>
+                </div>
+            )}
           </div>
 
-          {/* Right Area: Chat */}
-          <div className="lg:col-span-8 h-full min-h-[500px]">
-            <ChatInterface sessionId={sessionId} isReady={isReady} />
+          {/* Right Area: Analysis & Chat */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            {/* Skill Gap Dashboard Component */}
+            {isReady && (analyzing || skillGapData) && (
+                <SkillGapDashboard data={skillGapData} loading={analyzing} />
+            )}
+            
+            {/* Chat Interface */}
+            <div className="h-[600px]">
+                <ChatInterface sessionId={sessionId} isReady={isReady} />
+            </div>
           </div>
 
         </div>
