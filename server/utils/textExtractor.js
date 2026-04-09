@@ -1,4 +1,5 @@
-const pdf = require('pdf-parse');
+// Use direct path to avoid pdf-parse test file read on require
+const pdf = require('pdf-parse/lib/pdf-parse.js');
 const mammoth = require('mammoth');
 
 /**
