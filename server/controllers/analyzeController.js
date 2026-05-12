@@ -2,17 +2,28 @@ const { v4: uuidv4 } = require('uuid');
 const { extractText } = require('../utils/textExtractor');
 const vectorStore = require('../utils/vectorStore');
 const axios = require('axios');
-const mongoose = require('mongoose');
+const Session = require('../models/Session');
 
-// In-memory session store for MVP
-const sessions = {};
+// ─── Session Helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Get a session from MongoDB, verifying it belongs to the requesting user.
+ * Returns the session document or null.
+ */
+async function getSession(sessionId, userId) {
+    const session = await Session.findOne({ sessionId });
+    if (!session) return null;
+    // Security: verify ownership
+    if (session.userId.toString() !== userId.toString()) return null;
+    return session;
+}
 
 /**
  * Retrieve the raw resume and JD text for a session.
- * Used by analyzeRoutes for ATS scoring and skill gap analysis.
+ * Used by analyzeRoutes for ATS scoring, skill gap analysis, and interview prep.
  */
-function getSessionTexts(sessionId) {
-    const session = sessions[sessionId];
+async function getSessionTexts(sessionId, userId) {
+    const session = await getSession(sessionId, userId);
     if (!session) return null;
 
     let resumeText = null;
@@ -26,58 +37,78 @@ function getSessionTexts(sessionId) {
     return { resumeText, jdText };
 }
 
+// ─── Upload Handler ──────────────────────────────────────────────────────────
+
 exports.uploadHandler = async (req, res) => {
     try {
         const { sessionId } = req.body;
+        const userId = req.user.id;
         const file = req.file;
 
         if (!file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        // Generate or use existing session
-        const currentSessionId = sessionId || uuidv4();
-        if (!sessions[currentSessionId]) {
-            sessions[currentSessionId] = { files: [] };
-        }
-
-        // Extract text
+        // Extract text from file
         const text = await extractText(file.buffer, file.mimetype);
-
-        // Determine document type based on field name or simple heuristic
-        // For MVP, frontend should send 'type' in body: 'resume' or 'jd'
         const type = req.body.type || 'unknown';
 
         // Add to vector store
         const docId = uuidv4();
         await vectorStore.addDocument(docId, text, type);
 
-        // Track file in session (including extracted text for analysis)
         const fileInfo = {
             docId,
             filename: file.originalname,
             type,
             text,
+            fileSize: file.size,
             uploadedAt: new Date()
         };
-        sessions[currentSessionId].files.push(fileInfo);
 
-        // Persist metadata to MongoDB if connected
-        if (mongoose.connection.readyState === 1) {
-            const Document = require('../models/Document');
-            await Document.create({
+        let currentSessionId = sessionId;
+
+        if (currentSessionId) {
+            // Verify existing session belongs to this user
+            const existing = await Session.findOne({ sessionId: currentSessionId });
+            if (existing && existing.userId.toString() !== userId.toString()) {
+                return res.status(403).json({ error: 'Access denied — this session belongs to another user' });
+            }
+
+            if (existing) {
+                // Push file to existing session
+                existing.files.push(fileInfo);
+                existing.lastActiveAt = new Date();
+                await existing.save();
+            } else {
+                // sessionId provided but not found — create new
+                await Session.create({
+                    sessionId: currentSessionId,
+                    userId,
+                    files: [fileInfo],
+                    lastActiveAt: new Date()
+                });
+            }
+        } else {
+            // No sessionId — generate a new session
+            currentSessionId = uuidv4();
+            await Session.create({
                 sessionId: currentSessionId,
-                filename: file.originalname,
-                type,
-                docId,
-                fileSize: file.size
+                userId,
+                files: [fileInfo],
+                lastActiveAt: new Date()
             });
         }
 
         res.json({
             success: true,
             sessionId: currentSessionId,
-            document: fileInfo
+            document: {
+                docId: fileInfo.docId,
+                filename: fileInfo.filename,
+                type: fileInfo.type,
+                uploadedAt: fileInfo.uploadedAt
+            }
         });
 
     } catch (error) {
@@ -86,22 +117,28 @@ exports.uploadHandler = async (req, res) => {
     }
 };
 
+// ─── Chat Handler ────────────────────────────────────────────────────────────
+
 exports.chatHandler = async (req, res) => {
     try {
-        const { sessionId, question } = req.body;
+        const { sessionId, question, conversationHistory: incomingHistory } = req.body;
+        const userId = req.user.id;
 
-        if (!sessionId || !sessions[sessionId]) {
-            return res.status(400).json({ error: 'Invalid or missing session ID' });
+        if (!sessionId) {
+            return res.status(400).json({ error: 'Session ID is required' });
         }
 
-        const sessionFiles = sessions[sessionId].files;
-        const docIds = sessionFiles.map(f => f.docId);
+        const session = await getSession(sessionId, userId);
+        if (!session) {
+            return res.status(404).json({ error: 'Session not found or access denied' });
+        }
 
+        const docIds = session.files.map(f => f.docId);
         if (docIds.length === 0) {
             return res.status(400).json({ error: 'No documents uploaded in this session' });
         }
 
-        // 1. Retrieve context
+        // 1. Retrieve context from vector store
         const contextChunks = await vectorStore.search(question, docIds, 5);
 
         // 2. Format context for LLM
@@ -109,31 +146,36 @@ exports.chatHandler = async (req, res) => {
             `[${c.docType.toUpperCase()}] ${c.text}`
         ).join('\n\n');
 
-        // 3. Construct Prompt
-        const prompt = `
-You are an expert career advisor analyzing a resume and job description.
+        // 3. Build messages array with conversation threading
+        const systemPrompt = `You are an expert career advisor analyzing a resume and job description.
 Answer the user's question based ONLY on the provided context.
 
 Context:
 ${contextText}
 
-User Question: ${question}
-
 Instructions:
 - Provide a helpful, constructive answer.
 - Cite specific details from the context.
-- If information is missing, state that clearly.
-`;
+- If information is missing, state that clearly.`;
+
+        // Use incoming conversation history (cap at last 10 turns = 20 messages)
+        let history = Array.isArray(incomingHistory) ? incomingHistory : [];
+        if (history.length > 20) {
+            history = history.slice(history.length - 20);
+        }
+
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            ...history.map(h => ({ role: h.role, content: h.content })),
+            { role: 'user', content: question }
+        ];
 
         // 4. Call LLM
         const response = await axios.post(
             'https://openrouter.ai/api/v1/chat/completions',
             {
                 model: 'meta-llama/llama-3.3-70b-instruct',
-                messages: [
-                    { role: 'system', content: 'You are a helpful AI assistant for resume analysis.' },
-                    { role: 'user', content: prompt }
-                ]
+                messages
             },
             {
                 headers: {
@@ -146,14 +188,86 @@ Instructions:
 
         const answer = response.data.choices[0].message.content;
 
+        // 5. Build updated conversation history
+        const updatedHistory = [
+            ...history,
+            { role: 'user', content: question },
+            { role: 'assistant', content: answer }
+        ];
+
+        // Cap at 20 messages (10 turns)
+        const cappedHistory = updatedHistory.length > 20
+            ? updatedHistory.slice(updatedHistory.length - 20)
+            : updatedHistory;
+
+        // 6. Persist conversation history to MongoDB
+        session.conversationHistory = cappedHistory.map(h => ({
+            role: h.role,
+            content: h.content,
+            timestamp: new Date()
+        }));
+        session.lastActiveAt = new Date();
+        await session.save();
+
+        // 7. Compute top relevance score from citations
+        const topRelevanceScore = contextChunks.length > 0
+            ? Math.round(contextChunks[0].score * 100) / 100
+            : 0;
+
         res.json({
             answer,
-            citations: contextChunks
+            topRelevanceScore,
+            citations: contextChunks,
+            conversationHistory: cappedHistory
         });
 
     } catch (error) {
         console.error('Chat error:', error);
         res.status(500).json({ error: 'Failed to generate answer' });
+    }
+};
+
+// ─── Session Management ─────────────────────────────────────────────────────
+
+/**
+ * List all sessions for the authenticated user.
+ */
+exports.listSessions = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const sessions = await Session.find({ userId })
+            .sort({ lastActiveAt: -1 })
+            .limit(20)
+            .select('sessionId files.filename files.type createdAt lastActiveAt');
+
+        res.json(sessions);
+    } catch (error) {
+        console.error('List sessions error:', error);
+        res.status(500).json({ error: 'Failed to list sessions' });
+    }
+};
+
+/**
+ * Delete a session and its vectors.
+ */
+exports.deleteSession = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { sessionId } = req.params;
+
+        const session = await Session.findOne({ sessionId });
+        if (!session) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+        if (session.userId.toString() !== userId.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        await Session.deleteOne({ sessionId });
+        res.json({ success: true, message: 'Session deleted' });
+    } catch (error) {
+        console.error('Delete session error:', error);
+        res.status(500).json({ error: 'Failed to delete session' });
     }
 };
 

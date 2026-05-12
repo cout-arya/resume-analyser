@@ -63,26 +63,42 @@ const ATSScoreCard = ({ data, loading }) => {
         {
             label: 'Keyword Match',
             score: breakdown.keywordMatch,
-            max: 30,
+            max: 25,
             icon: <Target size={16} />,
             color: 'bg-blue-500',
             trackColor: 'bg-blue-100'
         },
         {
-            label: 'Semantic Similarity',
-            score: breakdown.semanticSimilarity,
-            max: 50,
+            label: 'Semantic Alignment',
+            score: breakdown.semanticAlignment || breakdown.semanticSimilarity || 0,
+            max: 30,
             icon: <Sparkles size={16} />,
             color: 'bg-violet-500',
             trackColor: 'bg-violet-100'
         },
         {
+            label: 'Experience Relevance',
+            score: breakdown.experienceRelevance || 0,
+            max: 20,
+            icon: <TrendingUp size={16} />,
+            color: 'bg-indigo-500',
+            trackColor: 'bg-indigo-100'
+        },
+        {
             label: 'Formatting',
             score: breakdown.formatting,
-            max: 20,
+            max: 15,
             icon: <FileCheck size={16} />,
             color: 'bg-teal-500',
             trackColor: 'bg-teal-100'
+        },
+        {
+            label: 'Quantifiable Impact',
+            score: breakdown.quantifiableImpact || 0,
+            max: 10,
+            icon: <Target size={16} />,
+            color: 'bg-amber-500',
+            trackColor: 'bg-amber-100'
         }
     ];
 

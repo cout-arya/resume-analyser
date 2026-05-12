@@ -1,5 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
-import axios from 'axios';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 const SessionContext = createContext();
@@ -12,10 +11,15 @@ export const SessionProvider = ({ children }) => {
 
     const [atsData, setAtsData] = useState(null);
     const [skillGapData, setSkillGapData] = useState(null);
+    const [interviewData, setInterviewData] = useState(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisError, setAnalysisError] = useState(null);
 
-    const { logout } = useAuth();
+    const [conversationHistory, setConversationHistory] = useState([]);
+    const [pastSessions, setPastSessions] = useState([]);
+    const [loadingSessions, setLoadingSessions] = useState(false);
+
+    const { api, logout } = useAuth();
 
     const isReady = !!sessionId && !!resumeFile && !!jdFile;
 
@@ -24,12 +28,79 @@ export const SessionProvider = ({ children }) => {
      */
     const handle401 = (error) => {
         if (error.response?.status === 401) {
-            alert('Session expired. Please log in again.');
-            logout();
-            window.location.href = '/login';
+            // The interceptor in AuthContext handles refresh automatically.
+            // If we still get 401 here, the refresh also failed.
             return true;
         }
         return false;
+    };
+
+    /**
+     * Fetch past sessions from the server.
+     */
+    const fetchSessions = useCallback(async () => {
+        setLoadingSessions(true);
+        try {
+            const response = await api.get('/api/sessions');
+            setPastSessions(response.data);
+        } catch (error) {
+            console.error('Failed to fetch sessions', error);
+        } finally {
+            setLoadingSessions(false);
+        }
+    }, [api]);
+
+    // Fetch sessions on mount
+    useEffect(() => {
+        fetchSessions();
+    }, [fetchSessions]);
+
+    /**
+     * Load a past session by setting the sessionId and file info.
+     */
+    const loadSession = (session) => {
+        setSessionId(session.sessionId);
+        const resume = session.files?.find(f => f.type === 'resume');
+        const jd = session.files?.find(f => f.type === 'jd');
+        // Create pseudo file objects with just the name for display
+        setResumeFile(resume ? { name: resume.filename } : null);
+        setJdFile(jd ? { name: jd.filename } : null);
+        // Reset analysis data for the loaded session
+        setAtsData(null);
+        setSkillGapData(null);
+        setInterviewData(null);
+        setAnalysisError(null);
+        setConversationHistory([]);
+    };
+
+    /**
+     * Start a fresh session.
+     */
+    const newSession = () => {
+        setSessionId(null);
+        setResumeFile(null);
+        setJdFile(null);
+        setAtsData(null);
+        setSkillGapData(null);
+        setInterviewData(null);
+        setAnalysisError(null);
+        setConversationHistory([]);
+    };
+
+    /**
+     * Delete a session.
+     */
+    const deleteSessionById = async (sid) => {
+        try {
+            await api.delete(`/api/sessions/${sid}`);
+            setPastSessions(prev => prev.filter(s => s.sessionId !== sid));
+            // If we deleted the active session, reset
+            if (sid === sessionId) {
+                newSession();
+            }
+        } catch (error) {
+            console.error('Failed to delete session', error);
+        }
     };
 
     const handleUpload = async (file, type) => {
@@ -42,10 +113,7 @@ export const SessionProvider = ({ children }) => {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            const response = await axios.post('http://localhost:4000/api/upload', formData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.post('/api/upload', formData);
 
             if (response.data.success) {
                 setSessionId(response.data.sessionId);
@@ -55,7 +123,12 @@ export const SessionProvider = ({ children }) => {
                 // Reset analysis on new file
                 setAtsData(null);
                 setSkillGapData(null);
+                setInterviewData(null);
                 setAnalysisError(null);
+                setConversationHistory([]);
+
+                // Refresh session list
+                fetchSessions();
             }
         } catch (error) {
             console.error('Upload failed', error);
@@ -72,12 +145,9 @@ export const SessionProvider = ({ children }) => {
         setAnalyzing(true);
         setAnalysisError(null);
         try {
-            const token = localStorage.getItem('token');
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-
             const [atsRes, skillGapRes] = await Promise.all([
-                axios.post('http://localhost:4000/api/analyze/score', { sessionId }, config),
-                axios.post('http://localhost:4000/api/analyze/skills', { sessionId }, config)
+                api.post('/api/analyze/score', { sessionId }),
+                api.post('/api/analyze/skills', { sessionId })
             ]);
 
             setAtsData(atsRes.data);
@@ -92,11 +162,52 @@ export const SessionProvider = ({ children }) => {
         }
     };
 
+    const runInterviewPrep = async () => {
+        if (!sessionId) return;
+        try {
+            const res = await api.post('/api/analyze/interview-prep', { sessionId });
+            setInterviewData(res.data);
+            return res.data;
+        } catch (error) {
+            console.error('Interview prep failed', error);
+            throw error;
+        }
+    };
+
+    const downloadReport = async () => {
+        try {
+            const response = await api.post('/api/report/generate', {
+                sessionId,
+                atsScore: atsData,
+                skillGap: skillGapData,
+                conversationHistory,
+                interviewPrep: interviewData,
+                resumeFilename: resumeFile?.name || 'Resume',
+                jdFilename: jdFile?.name || 'Job Description'
+            }, { responseType: 'blob' });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'analysis-report.pdf');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Report download failed', error);
+            alert('Failed to download report');
+        }
+    };
+
     return (
         <SessionContext.Provider value={{
             sessionId, resumeFile, jdFile, uploading, isReady,
-            atsData, skillGapData, analyzing, analysisError,
-            handleUpload, runAnalysis
+            atsData, skillGapData, interviewData, analyzing, analysisError,
+            conversationHistory, setConversationHistory,
+            pastSessions, loadingSessions,
+            handleUpload, runAnalysis, runInterviewPrep, downloadReport,
+            loadSession, newSession, deleteSessionById, fetchSessions
         }}>
             {children}
         </SessionContext.Provider>

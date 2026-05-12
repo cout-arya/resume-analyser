@@ -1,18 +1,28 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from '../context/SessionContext';
 import { useNavigate } from 'react-router-dom';
 import SkillGapDashboard from '../components/SkillGapDashboard';
-import { BarChart3, Upload } from 'lucide-react';
+import { BarChart3, Upload, Download, Loader2 } from 'lucide-react';
 
 const SkillGapPage = () => {
-    const { isReady, skillGapData, analyzing, analysisError, runAnalysis } = useSession();
+    const { isReady, skillGapData, analyzing, analysisError, runAnalysis, downloadReport } = useSession();
     const navigate = useNavigate();
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
         if (isReady && !skillGapData && !analyzing && !analysisError) {
             runAnalysis();
         }
     }, [isReady]);
+
+    const handleDownload = async () => {
+        setDownloading(true);
+        try {
+            await downloadReport();
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     if (!isReady) {
         return (
@@ -37,14 +47,27 @@ const SkillGapPage = () => {
     return (
         <div className="max-w-3xl mx-auto">
             <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="text-violet-600 bg-violet-50 p-2.5 rounded-xl">
-                        <BarChart3 size={24} />
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="text-violet-600 bg-violet-50 p-2.5 rounded-xl">
+                            <BarChart3 size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">Skill Gap Analysis</h2>
+                            <p className="text-sm text-gray-500">Identify matched, partial, and missing skills compared to the job description</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Skill Gap Analysis</h2>
-                        <p className="text-sm text-gray-500">Identify matched, partial, and missing skills compared to the job description</p>
-                    </div>
+
+                    {skillGapData && (
+                        <button
+                            onClick={handleDownload}
+                            disabled={downloading}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                        >
+                            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                            Download Report
+                        </button>
+                    )}
                 </div>
             </div>
 

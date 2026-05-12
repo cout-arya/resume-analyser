@@ -1,18 +1,28 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from '../context/SessionContext';
 import { useNavigate } from 'react-router-dom';
 import ATSScoreCard from '../components/ATSScoreCard';
-import { TrendingUp, Upload } from 'lucide-react';
+import { TrendingUp, Upload, Download, Loader2 } from 'lucide-react';
 
 const ATSScorePage = () => {
-    const { isReady, atsData, analyzing, analysisError, runAnalysis } = useSession();
+    const { isReady, atsData, analyzing, analysisError, runAnalysis, downloadReport } = useSession();
     const navigate = useNavigate();
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
         if (isReady && !atsData && !analyzing && !analysisError) {
             runAnalysis();
         }
     }, [isReady]);
+
+    const handleDownload = async () => {
+        setDownloading(true);
+        try {
+            await downloadReport();
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     if (!isReady) {
         return (
@@ -37,14 +47,27 @@ const ATSScorePage = () => {
     return (
         <div className="max-w-2xl mx-auto">
             <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="text-blue-600 bg-blue-50 p-2.5 rounded-xl">
-                        <TrendingUp size={24} />
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="text-blue-600 bg-blue-50 p-2.5 rounded-xl">
+                            <TrendingUp size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900">ATS Score Analysis</h2>
+                            <p className="text-sm text-gray-500">See how well your resume matches the job description</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900">ATS Score Analysis</h2>
-                        <p className="text-sm text-gray-500">See how well your resume matches the job description</p>
-                    </div>
+
+                    {atsData && (
+                        <button
+                            onClick={handleDownload}
+                            disabled={downloading}
+                            className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                        >
+                            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                            Download Report
+                        </button>
+                    )}
                 </div>
             </div>
 

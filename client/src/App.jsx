@@ -10,6 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 import ATSScorePage from './pages/ATSScorePage';
 import SkillGapPage from './pages/SkillGapPage';
+import InterviewPrepPage from './pages/InterviewPrepPage';
 import { AuthProvider } from './context/AuthContext';
 import { SessionProvider, useSession } from './context/SessionContext';
 
@@ -57,7 +58,7 @@ function AnalyzerPage() {
           <ul className="text-sm text-indigo-800 space-y-2 list-disc pl-4">
             <li>Upload your formatted Resume.</li>
             <li>Upload the Job Description you want to analyze.</li>
-            <li>Navigate to <strong>ATS Score</strong> and <strong>Skill Gap</strong> tabs in the top bar.</li>
+            <li>Navigate to <strong>ATS Score</strong>, <strong>Skill Gap</strong>, and <strong>Interview Prep</strong> tabs.</li>
             <li>Ask the AI Assistant questions about your fit, missing skills, or interview prep.</li>
           </ul>
         </div>
@@ -89,6 +90,7 @@ function DashboardWrapper() {
           <Route index element={<AnalyzerPage />} />
           <Route path="ats-score" element={<ATSScorePage />} />
           <Route path="skill-gap" element={<SkillGapPage />} />
+          <Route path="interview-prep" element={<InterviewPrepPage />} />
         </Routes>
       </DashboardLayout>
     </SessionProvider>

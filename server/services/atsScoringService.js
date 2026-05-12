@@ -2,62 +2,70 @@ const axios = require('axios');
 const vectorStore = require('../utils/vectorStore');
 
 /**
- * ATS Scoring Service
- * Evaluates resume-to-JD match with a 0-100 score across three dimensions:
- *   - Keyword Match (30%)
- *   - Semantic Similarity (50%)
- *   - Formatting & Structure (20%)
+ * ATS Scoring Service — v3.0
+ * 
+ * Multi-dimensional resume-to-JD scoring across 5 weighted dimensions:
+ *   - Keyword Match        (25%) — Hard skill & tool keyword overlap
+ *   - Semantic Alignment   (30%) — Embedding-based contextual similarity
+ *   - Experience Relevance (20%) — LLM-judged role/responsibility fit
+ *   - Formatting Quality   (15%) — Structure, sections, readability
+ *   - Quantifiable Impact  (10%) — Metrics, numbers, achievements
  */
 
-// ─── Keyword Match (30%) ────────────────────────────────────────────────────
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL = 'meta-llama/llama-3.3-70b-instruct';
 
-/**
- * Extract important keywords from the JD using LLM.
- */
+function getHeaders() {
+    return {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'HTTP-Referer': process.env.APP_URL || 'http://localhost:4000',
+        'X-Title': 'Resume Analyzer'
+    };
+}
+
+// ─── 1. Keyword Match (25%) ─────────────────────────────────────────────────
+
 async function extractKeywordsFromJD(jdText) {
     try {
-        const response = await axios.post(
-            'https://openrouter.ai/api/v1/chat/completions',
-            {
-                model: 'meta-llama/llama-3.3-70b-instruct',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are a keyword extraction engine. Output ONLY a JSON array of strings. No explanations.'
-                    },
-                    {
-                        role: 'user',
-                        content: `Extract the most important technical skills, tools, qualifications, and keywords from this job description. Return a JSON array of strings (15-30 keywords).
+        const response = await axios.post(OPENROUTER_URL, {
+            model: MODEL,
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are a keyword extraction engine for ATS resume scanning.
+Extract ONLY real professional skills, tools, technologies, certifications, and qualifications.
+
+NEVER include: PDF metadata, font names (Helvetica, Courier), encoding names, 
+file format terms (ASCII85Decode, FlateDecode), or document structure terms.
+
+Output ONLY a JSON array of strings. No explanations, no markdown.`
+                },
+                {
+                    role: 'user',
+                    content: `Extract 15-30 important keywords from this job description. Include:
+- Technical skills (languages, frameworks, tools)
+- Soft skills (leadership, communication)
+- Domain expertise (cloud, ML, finance)
+- Certifications or degrees mentioned
+- Methodologies (Agile, Scrum, CI/CD)
 
 Job Description:
-${jdText}`
-                    }
-                ],
-                temperature: 0.1
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                    'HTTP-Referer': process.env.APP_URL || 'http://localhost:5000',
-                    'X-Title': 'Resume Analyzer'
+${jdText.substring(0, 4000)}`
                 }
-            }
-        );
+            ],
+            temperature: 0.1
+        }, { headers: getHeaders() });
 
         const content = response.data.choices[0].message.content.trim();
-        // Parse JSON from LLM response (handle markdown fencing)
         const jsonStr = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        return JSON.parse(jsonStr);
+        const keywords = JSON.parse(jsonStr);
+        return filterGarbageTerms(keywords);
     } catch (error) {
         console.error('Keyword extraction error:', error.message);
-        // Fallback: simple word-frequency extraction
         return fallbackKeywordExtraction(jdText);
     }
 }
 
-/**
- * Fallback keyword extraction using simple heuristics.
- */
 function fallbackKeywordExtraction(text) {
     const stopWords = new Set([
         'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
@@ -71,7 +79,11 @@ function fallbackKeywordExtraction(text) {
         'its', 'we', 'our', 'you', 'your', 'they', 'their', 'them', 'he', 'she',
         'him', 'her', 'his', 'who', 'what', 'which', 'when', 'where', 'how',
         'work', 'working', 'experience', 'role', 'team', 'ability', 'strong',
-        'required', 'preferred', 'including', 'also', 'well', 'using', 'used'
+        'required', 'preferred', 'including', 'also', 'well', 'using', 'used',
+        // PDF garbage
+        'pdf', 'reportlab', 'helvetica', 'courier', 'flatedecode', 'ascii85decode',
+        'procset', 'imageb', 'imagec', 'imagei', 'winansiencoding', 'type1',
+        'truetype', 'endobj', 'startxref', 'xref', 'trailer'
     ]);
 
     const words = text.toLowerCase().replace(/[^a-z0-9\s\+\#\.]/g, ' ').split(/\s+/);
@@ -90,187 +102,308 @@ function fallbackKeywordExtraction(text) {
 }
 
 /**
- * Calculate keyword match score (0-30).
+ * Filter out PDF metadata terms that might leak through LLM extraction.
+ */
+function filterGarbageTerms(terms) {
+    const garbage = new Set([
+        'pdf', 'reportlab', 'reportlab pdf library', 'ascii85decode', 'flatedecode',
+        'type1', 'truetype', 'winansiencoding', 'macromanencoding',
+        'helvetica', 'helvetica-bold', 'helvetica-oblique', 'courier', 'courier-bold',
+        'times-roman', 'times-bold', 'symbol', 'zapfdingbats',
+        'procset', 'imageb', 'imagec', 'imagei', 'xobject',
+        'font', 'extgstate', 'baseencoding', 'fontdescriptor',
+        'mediabox', 'cropbox', 'contents', 'resources'
+    ]);
+
+    return terms.filter(t => {
+        const lower = t.toLowerCase().trim();
+        if (garbage.has(lower)) return false;
+        // Filter single characters and very short non-skill terms
+        if (lower.length < 2) return false;
+        // Filter hex-looking strings
+        if (/^[0-9a-f]{6,}$/i.test(lower)) return false;
+        return true;
+    });
+}
+
+/**
+ * Calculate keyword match score.
+ * Uses fuzzy matching — "React.js" matches "React", "Node" matches "Node.js"
  */
 function calculateKeywordScore(keywords, resumeText) {
     if (!keywords.length) return { score: 0, matchedKeywords: [], missingKeywords: keywords };
 
     const resumeLower = resumeText.toLowerCase();
-    let matchedCount = 0;
     const matchedKeywords = [];
     const missingKeywords = [];
 
     for (const keyword of keywords) {
         const keywordLower = keyword.toLowerCase();
+
+        // Exact match
         if (resumeLower.includes(keywordLower)) {
-            matchedCount++;
             matchedKeywords.push(keyword);
-        } else {
-            missingKeywords.push(keyword);
+            continue;
         }
+
+        // Fuzzy: strip dots, dashes, "js" suffix for framework matching
+        const normalized = keywordLower.replace(/[.\-]/g, '').replace(/js$/, '');
+        const resumeNormalized = resumeLower.replace(/[.\-]/g, '').replace(/js\b/g, '');
+        if (normalized.length > 2 && resumeNormalized.includes(normalized)) {
+            matchedKeywords.push(keyword);
+            continue;
+        }
+
+        // Check word stem (e.g., "containerization" matches "container")
+        const stem = keywordLower.substring(0, Math.min(keywordLower.length - 2, 6));
+        if (stem.length >= 4 && resumeLower.includes(stem)) {
+            matchedKeywords.push(keyword);
+            continue;
+        }
+
+        missingKeywords.push(keyword);
     }
 
-    const matchRatio = matchedCount / keywords.length;
-    const score = Math.round(matchRatio * 30);
+    const matchRatio = matchedKeywords.length / keywords.length;
+    const score = Math.round(matchRatio * 25);
 
     return { score, matchedKeywords, missingKeywords };
 }
 
-// ─── Semantic Similarity (50%) ──────────────────────────────────────────────
+// ─── 2. Semantic Alignment (30%) ────────────────────────────────────────────
 
-/**
- * Calculate semantic similarity score (0-50) using embeddings.
- */
 async function calculateSemanticScore(resumeText, jdText) {
     try {
-        // Get embeddings for both full texts
-        const [resumeEmbedding, jdEmbedding] = await vectorStore.getEmbeddings([resumeText, jdText]);
-        const similarity = vectorStore.cosineSimilarity(resumeEmbedding, jdEmbedding);
+        // Chunk the resume into sections for more granular comparison
+        const resumeChunks = chunkText(resumeText, 500);
+        const jdChunks = chunkText(jdText, 500);
 
-        // Map similarity (typically 0.5-1.0 range) to 0-50 score
-        // Cosine similarity for related documents is usually 0.3-0.9
-        const normalizedScore = Math.max(0, Math.min(1, (similarity - 0.3) / 0.6));
-        const score = Math.round(normalizedScore * 50);
+        // Get embeddings
+        const allTexts = [...resumeChunks, ...jdChunks];
+        const embeddings = await vectorStore.getEmbeddings(allTexts);
 
-        return { score, similarity: Math.round(similarity * 100) / 100 };
+        const resumeEmbeddings = embeddings.slice(0, resumeChunks.length);
+        const jdEmbeddings = embeddings.slice(resumeChunks.length);
+
+        // Calculate best-match similarity for each JD chunk
+        let totalSim = 0;
+        for (const jdEmb of jdEmbeddings) {
+            let bestSim = 0;
+            for (const resEmb of resumeEmbeddings) {
+                const sim = vectorStore.cosineSimilarity(resEmb, jdEmb);
+                bestSim = Math.max(bestSim, sim);
+            }
+            totalSim += bestSim;
+        }
+
+        const avgSimilarity = totalSim / Math.max(jdEmbeddings.length, 1);
+
+        // Map 0.3–0.85 range to 0–30 (realistic similarity range)
+        const normalizedScore = Math.max(0, Math.min(1, (avgSimilarity - 0.3) / 0.55));
+        const score = Math.round(normalizedScore * 30);
+
+        return { score, similarity: Math.round(avgSimilarity * 100) / 100 };
     } catch (error) {
         console.error('Semantic similarity error:', error.message);
         return { score: 0, similarity: 0 };
     }
 }
 
-// ─── Formatting & Structure (20%) ───────────────────────────────────────────
+function chunkText(text, chunkSize = 500) {
+    const words = text.split(/\s+/);
+    const chunks = [];
+    for (let i = 0; i < words.length; i += chunkSize) {
+        chunks.push(words.slice(i, i + chunkSize).join(' '));
+    }
+    return chunks.length > 0 ? chunks : [text];
+}
 
-/**
- * Rule-based formatting and structure analysis (0-20).
- */
+// ─── 3. Experience Relevance (20%) ──────────────────────────────────────────
+
+async function calculateExperienceRelevance(resumeText, jdText) {
+    try {
+        const response = await axios.post(OPENROUTER_URL, {
+            model: MODEL,
+            messages: [
+                {
+                    role: 'system',
+                    content: `You are an expert recruiter evaluating resume-to-job-description fit.
+Score the candidate's EXPERIENCE RELEVANCE on a scale of 0-20.
+
+Consider:
+- Do their past roles/responsibilities align with the JD requirements?
+- Is their seniority level appropriate?
+- Do they have domain experience mentioned in the JD?
+- Do they have relevant project experience?
+
+Output ONLY a JSON object: {"score": <0-20>, "reasoning": "<1 sentence>"}`
+                },
+                {
+                    role: 'user',
+                    content: `Resume (first 2000 chars):
+${resumeText.substring(0, 2000)}
+
+Job Description (first 2000 chars):
+${jdText.substring(0, 2000)}
+
+Rate experience relevance (0-20).`
+                }
+            ],
+            temperature: 0.2
+        }, { headers: getHeaders() });
+
+        const content = response.data.choices[0].message.content.trim();
+        const jsonStr = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const result = JSON.parse(jsonStr);
+        return {
+            score: Math.min(20, Math.max(0, Math.round(result.score))),
+            reasoning: result.reasoning || ''
+        };
+    } catch (error) {
+        console.error('Experience relevance error:', error.message);
+        return { score: 10, reasoning: 'Unable to evaluate — default score applied.' };
+    }
+}
+
+// ─── 4. Formatting Quality (15%) ────────────────────────────────────────────
+
 function calculateFormattingScore(resumeText) {
     let score = 0;
     const checks = {};
 
-    // Check for Skills section (4 points)
-    const skillsPattern = /\b(skills|technical skills|core competencies|technologies|proficiencies)\b/i;
-    if (skillsPattern.test(resumeText)) {
-        score += 4;
-        checks.skillsSection = true;
-    } else {
-        checks.skillsSection = false;
+    // Check for key resume sections (3 pts each, max 9)
+    const sections = [
+        { name: 'skillsSection', pattern: /\b(skills|technical skills|core competencies|technologies|proficiencies)\b/i },
+        { name: 'experienceSection', pattern: /\b(experience|work experience|professional experience|employment|work history)\b/i },
+        { name: 'educationSection', pattern: /\b(education|academic|qualification|degree|university|college)\b/i }
+    ];
+
+    for (const { name, pattern } of sections) {
+        if (pattern.test(resumeText)) {
+            score += 3;
+            checks[name] = true;
+        } else {
+            checks[name] = false;
+        }
     }
 
-    // Check for Experience section (4 points)
-    const expPattern = /\b(experience|work experience|professional experience|employment|work history)\b/i;
-    if (expPattern.test(resumeText)) {
-        score += 4;
-        checks.experienceSection = true;
-    } else {
-        checks.experienceSection = false;
-    }
-
-    // Check for Education section (4 points)
-    const eduPattern = /\b(education|academic|qualification|degree|university|college)\b/i;
-    if (eduPattern.test(resumeText)) {
-        score += 4;
-        checks.educationSection = true;
-    } else {
-        checks.educationSection = false;
-    }
-
-    // Check for bullet points / structured content (4 points)
-    const bulletLines = resumeText.split('\n').filter(line =>
-        /^\s*[\u2022\u2023\u25E6\u2043\u2219•\-\*]\s/.test(line) ||
-        /^\s*\d+[\.\)]\s/.test(line)
-    );
-    const bulletRatio = bulletLines.length / Math.max(resumeText.split('\n').length, 1);
-    if (bulletRatio > 0.15) {
-        score += 4;
-        checks.bulletPoints = true;
-    } else if (bulletRatio > 0.05) {
+    // Check for contact info (2 pts)
+    const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(resumeText);
+    const hasPhone = /[\+]?\d[\d\-\s]{7,}\d/.test(resumeText);
+    if (hasEmail || hasPhone) {
         score += 2;
-        checks.bulletPoints = 'partial';
+        checks.contactInfo = true;
+    } else {
+        checks.contactInfo = false;
+    }
+
+    // Check for bullet points / structured content (2 pts)
+    const lines = resumeText.split('\n');
+    const bulletLines = lines.filter(line =>
+        /^\s*[\u2022\u2023\u25E6\u2043\u2219•\-\*]\s/.test(line) ||
+        /^\s*\d+[\.)\]]\s/.test(line)
+    );
+    const bulletRatio = bulletLines.length / Math.max(lines.length, 1);
+    if (bulletRatio > 0.1) {
+        score += 2;
+        checks.bulletPoints = true;
     } else {
         checks.bulletPoints = false;
     }
 
-    // Check for reasonable length and structure (4 points)
-    const wordCount = resumeText.split(/\s+/).length;
-    const paragraphs = resumeText.split(/\n\n+/).length;
-    if (wordCount >= 200 && wordCount <= 1500 && paragraphs >= 3) {
-        score += 4;
-        checks.structure = true;
-    } else if (wordCount >= 100 && paragraphs >= 2) {
-        score += 2;
-        checks.structure = 'partial';
-    } else {
-        checks.structure = false;
-    }
+    return { score: Math.min(15, score), checks };
+}
 
-    return { score, checks };
+// ─── 5. Quantifiable Impact (10%) ───────────────────────────────────────────
+
+function calculateImpactScore(resumeText) {
+    let score = 0;
+    const details = {};
+
+    // Check for numbers/percentages indicating quantified achievements
+    const percentMatches = resumeText.match(/\d+\s*%/g) || [];
+    const dollarMatches = resumeText.match(/\$[\d,]+[kKmMbB]?/g) || [];
+    const numberMatches = resumeText.match(/\b\d{2,}\b/g) || []; // 2+ digit numbers
+
+    // Action verbs that indicate measurable impact
+    const impactVerbs = [
+        'increased', 'decreased', 'improved', 'reduced', 'achieved',
+        'delivered', 'generated', 'saved', 'grew', 'launched',
+        'built', 'developed', 'designed', 'implemented', 'automated',
+        'led', 'managed', 'mentored', 'optimized', 'scaled',
+        'streamlined', 'accelerated', 'consolidated', 'transformed'
+    ];
+    const resumeLower = resumeText.toLowerCase();
+    const verbCount = impactVerbs.filter(v => resumeLower.includes(v)).length;
+
+    // Score: quantified metrics (up to 5 pts)
+    const metricCount = percentMatches.length + dollarMatches.length;
+    if (metricCount >= 5) score += 5;
+    else if (metricCount >= 3) score += 4;
+    else if (metricCount >= 1) score += 2;
+
+    details.quantifiedMetrics = metricCount;
+
+    // Score: action verbs (up to 5 pts)
+    if (verbCount >= 8) score += 5;
+    else if (verbCount >= 5) score += 4;
+    else if (verbCount >= 3) score += 3;
+    else if (verbCount >= 1) score += 1;
+
+    details.actionVerbs = verbCount;
+
+    return { score: Math.min(10, score), details };
 }
 
 // ─── Summary Generation ─────────────────────────────────────────────────────
 
-/**
- * Generate a human-readable summary of the ATS score.
- */
-async function generateSummary(breakdown, keywordData) {
+async function generateSummary(breakdown, keywordData, experienceData, impactData) {
+    const totalScore = breakdown.keywordMatch + breakdown.semanticAlignment +
+        breakdown.experienceRelevance + breakdown.formatting + breakdown.quantifiableImpact;
+
     try {
-        const response = await axios.post(
-            'https://openrouter.ai/api/v1/chat/completions',
-            {
-                model: 'meta-llama/llama-3.3-70b-instruct',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'Provide a brief 1-2 sentence summary. Be specific and actionable. No markdown formatting.'
-                    },
-                    {
-                        role: 'user',
-                        content: `Given this ATS score breakdown:
-- Total Score: ${breakdown.keywordMatch + breakdown.semanticSimilarity + breakdown.formatting}/100
-- Keyword Match: ${breakdown.keywordMatch}/30
-- Semantic Similarity: ${breakdown.semanticSimilarity}/50
-- Formatting: ${breakdown.formatting}/20
+        const response = await axios.post(OPENROUTER_URL, {
+            model: MODEL,
+            messages: [
+                {
+                    role: 'system',
+                    content: 'You are an ATS expert. Write a concise 2-3 sentence summary. Be specific and actionable. No markdown.'
+                },
+                {
+                    role: 'user',
+                    content: `ATS Score Breakdown (total ${totalScore}/100):
+- Keyword Match: ${breakdown.keywordMatch}/25 (matched: ${keywordData.matchedKeywords.length}, missing: ${keywordData.missingKeywords.length})
+- Semantic Alignment: ${breakdown.semanticAlignment}/30
+- Experience Relevance: ${breakdown.experienceRelevance}/20 — ${experienceData.reasoning}
+- Formatting: ${breakdown.formatting}/15
+- Quantifiable Impact: ${breakdown.quantifiableImpact}/10 (${impactData.details.quantifiedMetrics} metrics, ${impactData.details.actionVerbs} action verbs)
 
-Missing keywords: ${keywordData.missingKeywords.slice(0, 10).join(', ')}
-Matched keywords: ${keywordData.matchedKeywords.slice(0, 10).join(', ')}
+Top missing keywords: ${keywordData.missingKeywords.slice(0, 8).join(', ')}
+Top matched keywords: ${keywordData.matchedKeywords.slice(0, 8).join(', ')}
 
-Write a concise summary of the resume's match quality and what to improve.`
-                    }
-                ],
-                temperature: 0.3
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                    'HTTP-Referer': process.env.APP_URL || 'http://localhost:5000',
-                    'X-Title': 'Resume Analyzer'
+Write a helpful, specific summary of this resume's ATS performance and top 2-3 improvements to make.`
                 }
-            }
-        );
+            ],
+            temperature: 0.3
+        }, { headers: getHeaders() });
 
         return response.data.choices[0].message.content.trim();
     } catch (error) {
         console.error('Summary generation error:', error.message);
-        const total = breakdown.keywordMatch + breakdown.semanticSimilarity + breakdown.formatting;
-        if (total >= 75) return 'Strong match with the job description. Minor improvements could boost your score further.';
-        if (total >= 50) return `Moderate match. Consider adding missing skills: ${keywordData.missingKeywords.slice(0, 5).join(', ')}.`;
-        return `Low match. Significant gaps in keywords and relevance. Focus on: ${keywordData.missingKeywords.slice(0, 5).join(', ')}.`;
+        if (totalScore >= 75) return 'Strong match. Your resume aligns well with the job description across keywords, experience, and skills.';
+        if (totalScore >= 50) return `Moderate match (${totalScore}/100). Focus on adding missing keywords: ${keywordData.missingKeywords.slice(0, 5).join(', ')}.`;
+        return `Low match (${totalScore}/100). Significant gaps in keywords and experience. Prioritize: ${keywordData.missingKeywords.slice(0, 5).join(', ')}.`;
     }
 }
 
 // ─── Main Scoring Function ──────────────────────────────────────────────────
 
-/**
- * Calculate the complete ATS score for a resume against a job description.
- * @param {string} resumeText - The resume text content.
- * @param {string} jdText - The job description text content.
- * @returns {Object} Score result with breakdown and summary.
- */
 async function calculateATSScore(resumeText, jdText) {
-    // Run keyword extraction and semantic scoring in parallel
-    const [keywords, semanticResult] = await Promise.all([
+    // Run independent analyses in parallel
+    const [keywords, semanticResult, experienceResult] = await Promise.all([
         extractKeywordsFromJD(jdText),
-        calculateSemanticScore(resumeText, jdText)
+        calculateSemanticScore(resumeText, jdText),
+        calculateExperienceRelevance(resumeText, jdText)
     ]);
 
     // Calculate keyword match
@@ -279,16 +412,22 @@ async function calculateATSScore(resumeText, jdText) {
     // Calculate formatting score
     const formattingResult = calculateFormattingScore(resumeText);
 
+    // Calculate impact score
+    const impactResult = calculateImpactScore(resumeText);
+
     const breakdown = {
         keywordMatch: keywordResult.score,
-        semanticSimilarity: semanticResult.score,
-        formatting: formattingResult.score
+        semanticAlignment: semanticResult.score,
+        experienceRelevance: experienceResult.score,
+        formatting: formattingResult.score,
+        quantifiableImpact: impactResult.score
     };
 
-    const totalScore = breakdown.keywordMatch + breakdown.semanticSimilarity + breakdown.formatting;
+    const totalScore = breakdown.keywordMatch + breakdown.semanticAlignment +
+        breakdown.experienceRelevance + breakdown.formatting + breakdown.quantifiableImpact;
 
     // Generate summary
-    const summary = await generateSummary(breakdown, keywordResult);
+    const summary = await generateSummary(breakdown, keywordResult, experienceResult, impactResult);
 
     return {
         score: totalScore,
@@ -297,7 +436,9 @@ async function calculateATSScore(resumeText, jdText) {
             matchedKeywords: keywordResult.matchedKeywords,
             missingKeywords: keywordResult.missingKeywords,
             semanticSimilarity: semanticResult.similarity,
-            formattingChecks: formattingResult.checks
+            formattingChecks: formattingResult.checks,
+            experienceReasoning: experienceResult.reasoning,
+            impactMetrics: impactResult.details
         },
         summary
     };

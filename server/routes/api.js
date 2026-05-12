@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { uploadHandler, chatHandler } = require('../controllers/analyzeController');
+const { uploadHandler, chatHandler, listSessions, deleteSession } = require('../controllers/analyzeController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Configure multer for memory storage
@@ -14,7 +14,14 @@ const upload = multer({
 // Protect all routes
 router.use(authMiddleware);
 
+// Document upload
 router.post('/upload', upload.single('file'), uploadHandler);
+
+// RAG Q&A chat
 router.post('/chat', chatHandler);
+
+// Session management
+router.get('/sessions', listSessions);
+router.delete('/sessions/:sessionId', deleteSession);
 
 module.exports = router;

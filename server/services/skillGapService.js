@@ -22,7 +22,10 @@ async function extractSkills(text, docType) {
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are a skill extraction engine. Output ONLY a JSON array of skill strings. No explanations, no markdown.'
+                        content: `You are a skill extraction engine. Output ONLY a JSON array of skill strings. No explanations, no markdown.
+
+IMPORTANT: Only extract REAL professional skills, tools, technologies, and competencies.
+NEVER include PDF metadata, font names (Helvetica, Courier, Times-Roman), encoding types (WinAnsiEncoding, ASCII85Decode, FlateDecode), document structure terms (ProcSet, ImageB, ImageC, ImageI, ReportLab, XObject), or file format terms.`
                     },
                     {
                         role: 'user',
@@ -50,6 +53,31 @@ ${text}`
         console.error(`Skill extraction error (${docType}):`, error.message);
         return fallbackSkillExtraction(text);
     }
+}
+
+/**
+ * Filter out PDF metadata terms that might leak into skill lists.
+ */
+function filterGarbageSkills(skills) {
+    const garbage = new Set([
+        'pdf', 'reportlab', 'reportlab pdf library', 'ascii85decode', 'flatedecode',
+        'type1', 'truetype', 'winansiencoding', 'macromanencoding',
+        'helvetica', 'helvetica-bold', 'helvetica-oblique', 'courier', 'courier-bold',
+        'times-roman', 'times-bold', 'symbol', 'zapfdingbats',
+        'procset', 'imageb', 'imagec', 'imagei', 'xobject',
+        'font', 'extgstate', 'baseencoding', 'fontdescriptor',
+        'mediabox', 'cropbox', 'contents', 'resources'
+    ]);
+
+    return skills.filter(s => {
+        const lower = s.toLowerCase().trim();
+        if (garbage.has(lower)) return false;
+        if (lower.length < 2) return false;
+        if (/^[0-9a-f]{6,}$/i.test(lower)) return false;
+        // Filter encoding/font-related terms
+        if (/encoding|decode|font|glyph|cmap/i.test(lower) && lower.length < 20) return false;
+        return true;
+    });
 }
 
 /**
