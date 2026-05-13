@@ -14,18 +14,7 @@ const PORT = process.env.PORT || 5000;
 
 // ─── CORS Configuration ─────────────────────────────────────────────────────
 const corsOptions = {
-    origin: function (origin, callback) {
-        // If ALLOWED_ORIGINS is set in environment, strictly enforce it
-        if (process.env.ALLOWED_ORIGINS) {
-            const allowed = process.env.ALLOWED_ORIGINS.split(',');
-            if (origin && !allowed.includes(origin)) {
-                return callback(new Error('CORS policy violation'), false);
-            }
-            return callback(null, true);
-        }
-        // Otherwise, dynamically allow any origin (great for Render/Railway deployments)
-        return callback(null, true);
-    },
+    origin: true, // Reflects the requesting origin (allows all origins safely with credentials)
     credentials: true,
     methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
