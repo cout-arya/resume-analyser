@@ -59,7 +59,7 @@ if (process.env.MONGO_URI) {
 
 // Basic Health Check
 app.get('/', (req, res) => {
-    res.send('Resume Analyzer API is running');
+    res.send('JDFit API is running');
 });
 
 // Start Server

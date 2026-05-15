@@ -6,7 +6,7 @@ export default function Navbar() {
       <div className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
 
         <div className="text-2xl font-black text-primary tracking-tighter font-headline">
-          SmartMatch AI
+          JDFit
         </div>
 
         <div className="hidden md:flex gap-8 items-center">
