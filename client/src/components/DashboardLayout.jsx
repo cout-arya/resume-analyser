@@ -52,8 +52,10 @@ const DashboardLayout = ({ children }) => {
                             <div className="text-blue-600 bg-blue-50 p-2 rounded-lg">
                                 <BrainCircuit size={22} />
                             </div>
-                            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent hidden sm:block">
-                                Smart Resume & JD Analyzer
+                            <h1 className="text-xl font-black tracking-tighter hidden sm:flex items-center gap-0.5">
+                                <span className="bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">JD</span>
+                                <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">Fit</span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 ml-0.5 mb-3"></span>
                             </h1>
                         </div>
 

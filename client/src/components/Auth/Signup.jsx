@@ -33,7 +33,7 @@ const Signup = () => {
             <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 space-y-6">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold text-slate-900 mb-2">Create Account</h2>
-                    <p className="text-slate-600">Join Smart Resume & JD Analyzer</p>
+                    <p className="text-slate-600">Join JDFit — AI-Powered Resume Analysis</p>
                 </div>
 
                 {error && (

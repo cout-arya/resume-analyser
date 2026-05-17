@@ -6,11 +6,11 @@ export default function Footer() {
 
         <div className="space-y-4">
           <div className="text-xl font-black text-primary font-headline">
-            SmartMatch AI
+            JDFit
           </div>
 
           <p className="font-inter text-sm text-on-surface-variant leading-relaxed">
-            © 2026 SmartMatch AI. Intelligent recruitment analysis for the modern age.
+            © 2026 JDFit. Intelligent recruitment analysis for the modern age.
           </p>
         </div>
 
