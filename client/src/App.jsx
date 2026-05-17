@@ -11,7 +11,7 @@ import DashboardLayout from './components/DashboardLayout';
 import ATSScorePage from './pages/ATSScorePage';
 import SkillGapPage from './pages/SkillGapPage';
 import InterviewPrepPage from './pages/InterviewPrepPage';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { SessionProvider, useSession } from './context/SessionContext';
 
 /**
@@ -74,9 +74,43 @@ function AnalyzerPage() {
   );
 }
 
+/**
+ * Landing page wrapper — if already logged in, "Get Started" goes to dashboard directly
+ */
 function LandingWrapper() {
   const navigate = useNavigate();
-  return <LandingPage onStart={() => navigate('/login')} />;
+  const { user } = useAuth();
+
+  const handleStart = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
+
+  return <LandingPage onStart={handleStart} />;
+}
+
+/**
+ * Redirect wrapper for auth pages — if already logged in, skip to dashboard
+ */
+function AuthRedirect({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
 }
 
 /**
@@ -103,8 +137,16 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingWrapper />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={
+            <AuthRedirect>
+              <Login />
+            </AuthRedirect>
+          } />
+          <Route path="/signup" element={
+            <AuthRedirect>
+              <Signup />
+            </AuthRedirect>
+          } />
           <Route
             path="/dashboard/*"
             element={

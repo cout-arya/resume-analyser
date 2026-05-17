@@ -39,7 +39,7 @@ const GoogleSignInButton = () => {
         setLoading(true);
         try {
             await googleLogin(response.credential);
-            navigate('/dashboard');
+            navigate('/dashboard', { replace: true });
         } catch (err) {
             console.error('Google login failed:', err);
             setError(err.response?.data?.error || 'Google sign-in failed. Please try again.');

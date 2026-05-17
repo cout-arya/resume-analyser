@@ -20,7 +20,7 @@ const Signup = () => {
 
         try {
             await register(username, email, password);
-            navigate('/dashboard');
+            navigate('/dashboard', { replace: true });
         } catch (err) {
             setError(err.response?.data?.error || 'Registration failed');
         } finally {

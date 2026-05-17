@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 
 export default function Navbar() {
+  const { user } = useAuth();
+
   return (
     <nav className="bg-surface sticky w-full top-0 z-50">
       <div className="flex justify-between items-center w-full px-8 py-4 max-w-7xl mx-auto">
@@ -28,19 +31,30 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Link 
-            to="/login"
-            className="text-on-surface-variant hover:text-primary transition-colors font-bold px-4 py-2"
-          >
-            Sign In
-          </Link>
+          {user ? (
+            <Link 
+              to="/dashboard"
+              className="bg-primary hover:bg-primary-container text-on-primary px-6 py-2 rounded-xl font-bold transition-all transform hover:scale-95 active:scale-100"
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link 
+                to="/login"
+                className="text-on-surface-variant hover:text-primary transition-colors font-bold px-4 py-2"
+              >
+                Sign In
+              </Link>
 
-          <Link 
-            to="/signup"
-            className="bg-primary hover:bg-primary-container text-on-primary px-6 py-2 rounded-xl font-bold transition-all transform hover:scale-95 active:scale-100"
-          >
-            Get Started Free
-          </Link>
+              <Link 
+                to="/signup"
+                className="bg-primary hover:bg-primary-container text-on-primary px-6 py-2 rounded-xl font-bold transition-all transform hover:scale-95 active:scale-100"
+              >
+                Get Started Free
+              </Link>
+            </>
+          )}
         </div>
 
       </div>
