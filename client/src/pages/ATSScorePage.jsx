@@ -5,15 +5,16 @@ import ATSScoreCard from '../components/ATSScoreCard';
 import { TrendingUp, Upload, Download, Loader2 } from 'lucide-react';
 
 const ATSScorePage = () => {
-    const { isReady, atsData, analyzing, analysisError, runAnalysis, downloadReport } = useSession();
+    const { isReady, atsData, analyzing, analysisError, runAnalysis, downloadReport, loadingCachedData } = useSession();
     const navigate = useNavigate();
     const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
-        if (isReady && !atsData && !analyzing && !analysisError) {
+        // Only run analysis if ready, no data, not already analyzing, and cache isn't loading
+        if (isReady && !atsData && !analyzing && !analysisError && !loadingCachedData) {
             runAnalysis();
         }
-    }, [isReady]);
+    }, [isReady, atsData, loadingCachedData]);
 
     const handleDownload = async () => {
         setDownloading(true);

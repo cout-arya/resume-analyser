@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 const SessionContext = createContext();
@@ -16,20 +16,26 @@ export const SessionProvider = ({ children }) => {
     const [analysisError, setAnalysisError] = useState(null);
 
     const [conversationHistory, setConversationHistory] = useState([]);
+    // Chat messages persist across tab navigation (lifted from ChatInterface)
+    const [chatMessages, setChatMessages] = useState([
+        { role: 'system', content: 'Upload your Resume and Job Description to start analyzing!' }
+    ]);
     const [pastSessions, setPastSessions] = useState([]);
     const [loadingSessions, setLoadingSessions] = useState(false);
+    const [loadingCachedData, setLoadingCachedData] = useState(false);
 
     const { api, logout } = useAuth();
 
     const isReady = !!sessionId && !!resumeFile && !!jdFile;
+
+    // Track whether we've already loaded cached data for the current session
+    const cachedSessionRef = useRef(null);
 
     /**
      * Handle 401 errors by forcing re-login
      */
     const handle401 = (error) => {
         if (error.response?.status === 401) {
-            // The interceptor in AuthContext handles refresh automatically.
-            // If we still get 401 here, the refresh also failed.
             return true;
         }
         return false;
@@ -56,6 +62,53 @@ export const SessionProvider = ({ children }) => {
     }, [fetchSessions]);
 
     /**
+     * Load cached analysis data from the server when a session becomes ready.
+     * This restores ATS score, skill gap, interview prep, and chat history
+     * instantly from MongoDB without re-calling the LLM.
+     */
+    const loadCachedData = useCallback(async (sid) => {
+        if (!sid || cachedSessionRef.current === sid) return;
+        cachedSessionRef.current = sid;
+        setLoadingCachedData(true);
+
+        try {
+            const response = await api.get(`/api/analyze/cached/${sid}`);
+            const { atsData: cachedAts, skillGapData: cachedSkillGap, interviewData: cachedInterview, conversationHistory: cachedHistory } = response.data;
+
+            if (cachedAts) setAtsData(cachedAts);
+            if (cachedSkillGap) setSkillGapData(cachedSkillGap);
+            if (cachedInterview) setInterviewData(cachedInterview);
+
+            // Restore conversation history
+            if (cachedHistory && cachedHistory.length > 0) {
+                setConversationHistory(cachedHistory);
+                // Rebuild chat messages from conversation history
+                const restoredMessages = [
+                    { role: 'system', content: 'Upload your Resume and Job Description to start analyzing!' },
+                    { role: 'system', content: 'Documents processed. You can now ask questions specifically about your fit for this role.' },
+                    ...cachedHistory.map(h => ({
+                        role: h.role === 'user' ? 'user' : 'assistant',
+                        content: h.content
+                    }))
+                ];
+                setChatMessages(restoredMessages);
+            }
+        } catch (error) {
+            console.error('Failed to load cached data:', error);
+            // Non-fatal — user can still generate fresh results
+        } finally {
+            setLoadingCachedData(false);
+        }
+    }, [api]);
+
+    // When session becomes ready, load cached data
+    useEffect(() => {
+        if (isReady && sessionId) {
+            loadCachedData(sessionId);
+        }
+    }, [isReady, sessionId, loadCachedData]);
+
+    /**
      * Load a past session by setting the sessionId and file info.
      */
     const loadSession = (session) => {
@@ -65,12 +118,17 @@ export const SessionProvider = ({ children }) => {
         // Create pseudo file objects with just the name for display
         setResumeFile(resume ? { name: resume.filename } : null);
         setJdFile(jd ? { name: jd.filename } : null);
-        // Reset analysis data for the loaded session
+        // Reset analysis data — loadCachedData will restore from MongoDB
         setAtsData(null);
         setSkillGapData(null);
         setInterviewData(null);
         setAnalysisError(null);
         setConversationHistory([]);
+        setChatMessages([
+            { role: 'system', content: 'Upload your Resume and Job Description to start analyzing!' }
+        ]);
+        // Reset cached session ref so loadCachedData triggers for the new session
+        cachedSessionRef.current = null;
     };
 
     /**
@@ -85,6 +143,10 @@ export const SessionProvider = ({ children }) => {
         setInterviewData(null);
         setAnalysisError(null);
         setConversationHistory([]);
+        setChatMessages([
+            { role: 'system', content: 'Upload your Resume and Job Description to start analyzing!' }
+        ]);
+        cachedSessionRef.current = null;
     };
 
     /**
@@ -120,12 +182,16 @@ export const SessionProvider = ({ children }) => {
                 if (type === 'resume') setResumeFile(file);
                 if (type === 'jd') setJdFile(file);
 
-                // Reset analysis on new file
+                // Reset analysis on new file (cache invalidated on server too)
                 setAtsData(null);
                 setSkillGapData(null);
                 setInterviewData(null);
                 setAnalysisError(null);
                 setConversationHistory([]);
+                setChatMessages([
+                    { role: 'system', content: 'Upload your Resume and Job Description to start analyzing!' }
+                ]);
+                cachedSessionRef.current = null;
 
                 // Refresh session list
                 fetchSessions();
@@ -142,6 +208,8 @@ export const SessionProvider = ({ children }) => {
 
     const runAnalysis = async () => {
         if (!sessionId) return;
+        // Don't re-run if we already have data
+        if (atsData && skillGapData) return;
         setAnalyzing(true);
         setAnalysisError(null);
         try {
@@ -205,7 +273,8 @@ export const SessionProvider = ({ children }) => {
             sessionId, resumeFile, jdFile, uploading, isReady,
             atsData, skillGapData, interviewData, analyzing, analysisError,
             conversationHistory, setConversationHistory,
-            pastSessions, loadingSessions,
+            chatMessages, setChatMessages,
+            pastSessions, loadingSessions, loadingCachedData,
             handleUpload, runAnalysis, runInterviewPrep, downloadReport,
             loadSession, newSession, deleteSessionById, fetchSessions
         }}>

@@ -13,14 +13,15 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 const ChatInterface = ({ sessionId, isReady }) => {
-    const [messages, setMessages] = useState([
-        { role: 'system', content: 'Upload your Resume and Job Description to start analyzing!' }
-    ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
     const { api } = useAuth();
-    const { conversationHistory, setConversationHistory } = useSession();
+    const { conversationHistory, setConversationHistory, chatMessages, setChatMessages } = useSession();
+
+    // Alias for readability
+    const messages = chatMessages;
+    const setMessages = setChatMessages;
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -30,21 +31,12 @@ const ChatInterface = ({ sessionId, isReady }) => {
         scrollToBottom();
     }, [messages]);
 
+    // Add "documents processed" message when ready and not already shown
     useEffect(() => {
-        if (isReady && messages.length === 1) {
+        if (isReady && messages.length === 1 && messages[0].role === 'system') {
             setMessages(prev => [...prev, { role: 'system', content: 'Documents processed. You can now ask questions specifically about your fit for this role.' }]);
         }
     }, [isReady]);
-
-    // Reset when session changes (new files uploaded)
-    useEffect(() => {
-        if (conversationHistory.length === 0 && messages.some(m => m.role === 'user')) {
-            setMessages([
-                { role: 'system', content: 'Upload your Resume and Job Description to start analyzing!' },
-                ...(isReady ? [{ role: 'system', content: 'Documents processed. You can now ask questions specifically about your fit for this role.' }] : [])
-            ]);
-        }
-    }, [conversationHistory]);
 
     const handleSend = async (question) => {
         const userMsg = typeof question === 'string' ? question : input;

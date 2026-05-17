@@ -5,15 +5,16 @@ import SkillGapDashboard from '../components/SkillGapDashboard';
 import { BarChart3, Upload, Download, Loader2 } from 'lucide-react';
 
 const SkillGapPage = () => {
-    const { isReady, skillGapData, analyzing, analysisError, runAnalysis, downloadReport } = useSession();
+    const { isReady, skillGapData, analyzing, analysisError, runAnalysis, downloadReport, loadingCachedData } = useSession();
     const navigate = useNavigate();
     const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
-        if (isReady && !skillGapData && !analyzing && !analysisError) {
+        // Only run analysis if ready, no data, not already analyzing, and cache isn't loading
+        if (isReady && !skillGapData && !analyzing && !analysisError && !loadingCachedData) {
             runAnalysis();
         }
-    }, [isReady]);
+    }, [isReady, skillGapData, loadingCachedData]);
 
     const handleDownload = async () => {
         setDownloading(true);

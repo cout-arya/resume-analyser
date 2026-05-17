@@ -76,8 +76,11 @@ exports.uploadHandler = async (req, res) => {
             }
 
             if (existing) {
-                // Push file to existing session
+                // Push file to existing session + invalidate cached analysis
                 existing.files.push(fileInfo);
+                existing.cachedAtsData = null;
+                existing.cachedSkillGapData = null;
+                existing.cachedInterviewData = null;
                 existing.lastActiveAt = new Date();
                 await existing.save();
             } else {

@@ -16,6 +16,10 @@ const sessionSchema = new mongoose.Schema({
         content: String,
         timestamp: { type: Date, default: Date.now }
     }],
+    // Cached analysis results — avoids re-calling LLM on navigation
+    cachedAtsData: { type: mongoose.Schema.Types.Mixed, default: null },
+    cachedSkillGapData: { type: mongoose.Schema.Types.Mixed, default: null },
+    cachedInterviewData: { type: mongoose.Schema.Types.Mixed, default: null },
     lastActiveAt: { type: Date, default: Date.now },
     createdAt: { type: Date, default: Date.now }
 });
