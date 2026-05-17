@@ -27,19 +27,32 @@ app.use(express.json());
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
 const apiLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,  // 1 hour
-    max: 100,
+    max: 500,                   // 500 requests per hour (general API)
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests. Please try again in an hour.' }
 });
 
+// Stricter limit for LLM-heavy endpoints (score, skills, interview-prep, chat)
+const analyzeLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,  // 1 hour
+    max: 50,                    // 50 LLM calls per hour
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many analysis requests. Please try again later.' }
+});
+
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,  // 15 minutes
-    max: 10,
+    max: 20,                    // 20 attempts per 15 min
     message: { error: 'Too many login attempts. Please wait 15 minutes.' }
 });
 
 app.use('/api/auth/', authLimiter);
+app.use('/api/analyze/score', analyzeLimiter);
+app.use('/api/analyze/skills', analyzeLimiter);
+app.use('/api/analyze/interview-prep', analyzeLimiter);
+app.use('/api/chat', analyzeLimiter);
 app.use('/api/', apiLimiter);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
