@@ -1,7 +1,23 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: jdfit-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   mongodb:
     image: mongo:7
-    container_name: resume-analyzer-db
+    container_name: jdfit-db
     restart: unless-stopped
     ports:
       - "27017:27017"
@@ -18,19 +34,24 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
-    container_name: resume-analyzer-backend
+    container_name: jdfit-backend
     restart: unless-stopped
     environment:
       PORT: 5000
       MONGO_URI: mongodb://mongodb:27017/resume-analyzer
+      REDIS_URL: redis://redis:6379
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-in-production}
       APP_URL: http://localhost:5000
+      # Allow requests from the Nginx frontend container on port 80
+      ALLOWED_ORIGINS: http://localhost,http://localhost:80,http://frontend
     ports:
       - "5000:5000"
     depends_on:
       mongodb:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - ./server/data:/app/data
@@ -39,7 +60,11 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
-    container_name: resume-analyzer-frontend
+      args:
+        # Injected at build-time so Vite bakes the URL into the bundle
+        VITE_API_URL: http://localhost:5000
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    container_name: jdfit-frontend
     restart: unless-stopped
     ports:
       - "80:80"
@@ -48,3 +73,4 @@ services:
 
 volumes:
   mongo-data:
+  redis-data:

@@ -2,8 +2,14 @@ node_modules
 npm-debug.log*
 .env
 .env.*
+
+# Test files — not needed in production image
 __tests__
 coverage
+test_redis_e2e.js
+*.test.js
+
+# Dev artifacts
 .git
 .gitignore
 README.md

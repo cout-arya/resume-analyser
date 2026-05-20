@@ -4,11 +4,25 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+const { safeSet, safeExists } = require('../utils/redisClient');
 
 const ACCESS_SECRET = process.env.JWT_SECRET || 'secret';
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh-secret';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+// Refresh tokens expire in 7 days — blocklist TTL matches
+const REFRESH_TOKEN_TTL = 60 * 60 * 24 * 7; // 7 days in seconds
+
+/**
+ * Build a Redis key for a blocklisted refresh token.
+ * We store the hashed token itself to avoid raw token exposure in Redis.
+ */
+function blockedTokenKey(token) {
+    // Use first 32 chars of the token as a unique-enough identifier
+    // (tokens are signed JWTs, so they're unique per user/session)
+    return `blocked_token:${token.substring(token.lastIndexOf('.') + 1, token.lastIndexOf('.') + 33)}`;
+}
 
 /**
  * Generate access + refresh token pair.
@@ -94,6 +108,12 @@ router.post('/refresh', async (req, res) => {
             return res.status(400).json({ error: 'Refresh token is required' });
         }
 
+        // ── 1. Check Redis blocklist first (fast path) ────────────────────────
+        const isBlocked = await safeExists(blockedTokenKey(refreshToken));
+        if (isBlocked) {
+            return res.status(401).json({ error: 'Refresh token has been revoked' });
+        }
+
         // Verify the refresh token
         let decoded;
         try {
@@ -143,8 +163,13 @@ router.post('/logout', async (req, res) => {
             return res.status(200).json({ message: 'Logged out' });
         }
 
-        // Clear the stored refresh token hash
+        // ── 1. Add to Redis blocklist (instant revocation) ────────────────────
+        // This prevents token reuse even before the Mongo write completes.
+        await safeSet(blockedTokenKey(refreshToken), '1', REFRESH_TOKEN_TTL);
+
+        // ── 2. Clear the stored refresh token hash in MongoDB ─────────────────
         await User.findByIdAndUpdate(decoded.id, { refreshTokenHash: null });
+
         res.json({ message: 'Logged out successfully' });
     } catch (err) {
         console.error('Logout error:', err.message);

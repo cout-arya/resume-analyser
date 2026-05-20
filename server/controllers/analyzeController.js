@@ -3,6 +3,9 @@ const { extractText } = require('../utils/textExtractor');
 const vectorStore = require('../utils/vectorStore');
 const axios = require('axios');
 const Session = require('../models/Session');
+const { getSessionCache, setSessionCache, invalidateSessionCache } = require('../utils/sessionCache');
+const { invalidateAnalysisCache } = require('../utils/analysisCache');
+const { getChatHistory, setChatHistory } = require('../utils/chatCache');
 
 // ─── Session Helpers ─────────────────────────────────────────────────────────
 
@@ -20,11 +23,31 @@ async function getSession(sessionId, userId) {
 
 /**
  * Retrieve the raw resume and JD text for a session.
+ * Cache hierarchy: Redis session cache → MongoDB
  * Used by analyzeRoutes for ATS scoring, skill gap analysis, and interview prep.
  */
 async function getSessionTexts(sessionId, userId) {
+    // ── 1. Redis fast path ────────────────────────────────────────────────────
+    const cached = await getSessionCache(sessionId);
+    if (cached) {
+        // Verify ownership using cached userId
+        if (cached.userId !== userId.toString()) return null;
+
+        let resumeText = null;
+        let jdText = null;
+        for (const file of cached.files) {
+            if (file.type === 'resume' && file.text) resumeText = file.text;
+            if (file.type === 'jd' && file.text) jdText = file.text;
+        }
+        return { resumeText, jdText };
+    }
+
+    // ── 2. MongoDB fallback ───────────────────────────────────────────────────
     const session = await getSession(sessionId, userId);
     if (!session) return null;
+
+    // Backfill Redis for subsequent calls
+    await setSessionCache(sessionId, session);
 
     let resumeText = null;
     let jdText = null;
@@ -83,24 +106,34 @@ exports.uploadHandler = async (req, res) => {
                 existing.cachedInterviewData = null;
                 existing.lastActiveAt = new Date();
                 await existing.save();
+
+                // Invalidate Redis caches: session metadata + all analysis results
+                await Promise.all([
+                    invalidateSessionCache(currentSessionId),
+                    invalidateAnalysisCache(currentSessionId),
+                ]);
             } else {
                 // sessionId provided but not found — create new
-                await Session.create({
+                const newSession = await Session.create({
                     sessionId: currentSessionId,
                     userId,
                     files: [fileInfo],
                     lastActiveAt: new Date()
                 });
+                // Prime Redis session cache immediately
+                await setSessionCache(currentSessionId, newSession);
             }
         } else {
             // No sessionId — generate a new session
             currentSessionId = uuidv4();
-            await Session.create({
+            const newSession = await Session.create({
                 sessionId: currentSessionId,
                 userId,
                 files: [fileInfo],
                 lastActiveAt: new Date()
             });
+            // Prime Redis session cache immediately
+            await setSessionCache(currentSessionId, newSession);
         }
 
         res.json({
@@ -203,14 +236,25 @@ Instructions:
             ? updatedHistory.slice(updatedHistory.length - 20)
             : updatedHistory;
 
-        // 6. Persist conversation history to MongoDB
-        session.conversationHistory = cappedHistory.map(h => ({
-            role: h.role,
-            content: h.content,
-            timestamp: new Date()
-        }));
-        session.lastActiveAt = new Date();
-        await session.save();
+        // 6. Persist conversation history:
+        //    - Redis: immediate (fast, used for next request's history)
+        //    - MongoDB: async write (persistence, survives Redis restart)
+        await setChatHistory(sessionId, cappedHistory);
+
+        // Fire-and-forget Mongo write — don't block the response
+        Session.updateOne(
+            { _id: session._id },
+            {
+                $set: {
+                    conversationHistory: cappedHistory.map(h => ({
+                        role: h.role,
+                        content: h.content,
+                        timestamp: new Date()
+                    })),
+                    lastActiveAt: new Date()
+                }
+            }
+        ).catch(err => console.error('[Chat] MongoDB history write error:', err));
 
         // 7. Compute top relevance score from citations
         const topRelevanceScore = contextChunks.length > 0
@@ -267,6 +311,13 @@ exports.deleteSession = async (req, res) => {
         }
 
         await Session.deleteOne({ sessionId });
+
+        // Clean up Redis keys for this session
+        await Promise.all([
+            invalidateSessionCache(sessionId),
+            invalidateAnalysisCache(sessionId),
+        ]);
+
         res.json({ success: true, message: 'Session deleted' });
     } catch (error) {
         console.error('Delete session error:', error);

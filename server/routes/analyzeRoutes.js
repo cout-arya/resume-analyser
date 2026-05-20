@@ -6,6 +6,8 @@ const { calculateATSScore } = require('../services/atsScoringService');
 const { analyzeSkillGap } = require('../services/skillGapService');
 const { generateInterviewQuestions } = require('../services/interviewPrepService');
 const Session = require('../models/Session');
+const { getAnalysisCache, setAnalysisCache, TYPES } = require('../utils/analysisCache');
+const { getChatHistory } = require('../utils/chatCache');
 
 // Protect all analysis routes
 router.use(authMiddleware);
@@ -13,13 +15,46 @@ router.use(authMiddleware);
 /**
  * GET /api/analyze/cached/:sessionId
  * Return all cached analysis data for a session (instant, no LLM calls).
- * Used on session load / page navigation to restore previous results.
+ * Cache hierarchy: Redis (fast) → MongoDB (persistent fallback)
  */
 router.get('/cached/:sessionId', async (req, res) => {
     try {
         const { sessionId } = req.params;
         const userId = req.user.id;
 
+        // ── 1. Try Redis first for all three analysis types ──────────────────
+        const [redisAts, redisSkill, redisInterview, redisChatRaw] = await Promise.all([
+            getAnalysisCache(sessionId, TYPES.ats),
+            getAnalysisCache(sessionId, TYPES.skillGap),
+            getAnalysisCache(sessionId, TYPES.interview),
+            getChatHistory(sessionId),
+        ]);
+
+        const allFromRedis = redisAts || redisSkill || redisInterview || redisChatRaw;
+
+        if (allFromRedis) {
+            // At least some Redis data available — still need Mongo for any missing pieces
+            // and to verify ownership.
+            const session = await Session.findOne({ sessionId })
+                .select('userId cachedAtsData cachedSkillGapData cachedInterviewData conversationHistory');
+
+            if (!session || session.userId.toString() !== userId.toString()) {
+                return res.status(404).json({ error: 'Session not found or access denied' });
+            }
+
+            return res.json({
+                atsData: redisAts || session.cachedAtsData || null,
+                skillGapData: redisSkill || session.cachedSkillGapData || null,
+                interviewData: redisInterview || session.cachedInterviewData || null,
+                conversationHistory: redisChatRaw || (session.conversationHistory || []).map(h => ({
+                    role: h.role,
+                    content: h.content
+                })),
+                source: 'redis',
+            });
+        }
+
+        // ── 2. Redis miss — fall back to MongoDB ─────────────────────────────
         const session = await Session.findOne({ sessionId });
         if (!session || session.userId.toString() !== userId.toString()) {
             return res.status(404).json({ error: 'Session not found or access denied' });
@@ -32,8 +67,10 @@ router.get('/cached/:sessionId', async (req, res) => {
             conversationHistory: (session.conversationHistory || []).map(h => ({
                 role: h.role,
                 content: h.content
-            }))
+            })),
+            source: 'mongodb',
         });
+
     } catch (error) {
         console.error('Cached data fetch error:', error);
         res.status(500).json({ error: 'Failed to fetch cached data' });
@@ -43,8 +80,7 @@ router.get('/cached/:sessionId', async (req, res) => {
 /**
  * POST /api/analyze/score
  * Calculate ATS score for resume vs job description.
- * Returns cached result if available, otherwise generates and caches.
- * Body: { sessionId: string, forceRefresh?: boolean }
+ * Cache hierarchy: Redis → MongoDB → LLM (generate + cache both)
  */
 router.post('/score', async (req, res) => {
     try {
@@ -55,15 +91,27 @@ router.post('/score', async (req, res) => {
             return res.status(400).json({ error: 'Session ID is required' });
         }
 
-        // Check for cached data first
+        // ── 1. Redis fast path ────────────────────────────────────────────────
+        if (!forceRefresh) {
+            const redisResult = await getAnalysisCache(sessionId, TYPES.ats);
+            if (redisResult) {
+                console.log(`[ATS] Redis HIT for session ${sessionId}`);
+                return res.json(redisResult);
+            }
+        }
+
+        // ── 2. MongoDB fallback ───────────────────────────────────────────────
         if (!forceRefresh) {
             const session = await Session.findOne({ sessionId });
             if (session && session.userId.toString() === userId.toString() && session.cachedAtsData) {
-                console.log(`[ATS] Returning cached result for session ${sessionId}`);
+                console.log(`[ATS] MongoDB cache HIT for session ${sessionId}`);
+                // Backfill Redis for faster subsequent reads
+                await setAnalysisCache(sessionId, TYPES.ats, session.cachedAtsData);
                 return res.json(session.cachedAtsData);
             }
         }
 
+        // ── 3. Generate via LLM ───────────────────────────────────────────────
         const texts = await getSessionTexts(sessionId, userId);
         if (!texts) {
             return res.status(404).json({ error: 'Session not found or access denied' });
@@ -78,11 +126,14 @@ router.post('/score', async (req, res) => {
 
         const result = await calculateATSScore(resumeText, jdText);
 
-        // Cache the result in MongoDB
-        await Session.updateOne(
-            { sessionId },
-            { $set: { cachedAtsData: result, lastActiveAt: new Date() } }
-        );
+        // ── 4. Dual write: Redis + MongoDB ────────────────────────────────────
+        await Promise.all([
+            setAnalysisCache(sessionId, TYPES.ats, result),
+            Session.updateOne(
+                { sessionId },
+                { $set: { cachedAtsData: result, lastActiveAt: new Date() } }
+            ),
+        ]);
 
         res.json(result);
 
@@ -95,8 +146,7 @@ router.post('/score', async (req, res) => {
 /**
  * POST /api/analyze/skills
  * Analyze skill gaps between resume and job description.
- * Returns cached result if available, otherwise generates and caches.
- * Body: { sessionId: string, forceRefresh?: boolean }
+ * Cache hierarchy: Redis → MongoDB → LLM (generate + cache both)
  */
 router.post('/skills', async (req, res) => {
     try {
@@ -107,15 +157,26 @@ router.post('/skills', async (req, res) => {
             return res.status(400).json({ error: 'Session ID is required' });
         }
 
-        // Check for cached data first
+        // ── 1. Redis fast path ────────────────────────────────────────────────
+        if (!forceRefresh) {
+            const redisResult = await getAnalysisCache(sessionId, TYPES.skillGap);
+            if (redisResult) {
+                console.log(`[SkillGap] Redis HIT for session ${sessionId}`);
+                return res.json(redisResult);
+            }
+        }
+
+        // ── 2. MongoDB fallback ───────────────────────────────────────────────
         if (!forceRefresh) {
             const session = await Session.findOne({ sessionId });
             if (session && session.userId.toString() === userId.toString() && session.cachedSkillGapData) {
-                console.log(`[SkillGap] Returning cached result for session ${sessionId}`);
+                console.log(`[SkillGap] MongoDB cache HIT for session ${sessionId}`);
+                await setAnalysisCache(sessionId, TYPES.skillGap, session.cachedSkillGapData);
                 return res.json(session.cachedSkillGapData);
             }
         }
 
+        // ── 3. Generate via LLM ───────────────────────────────────────────────
         const texts = await getSessionTexts(sessionId, userId);
         if (!texts) {
             return res.status(404).json({ error: 'Session not found or access denied' });
@@ -130,11 +191,14 @@ router.post('/skills', async (req, res) => {
 
         const result = await analyzeSkillGap(resumeText, jdText);
 
-        // Cache the result in MongoDB
-        await Session.updateOne(
-            { sessionId },
-            { $set: { cachedSkillGapData: result, lastActiveAt: new Date() } }
-        );
+        // ── 4. Dual write: Redis + MongoDB ────────────────────────────────────
+        await Promise.all([
+            setAnalysisCache(sessionId, TYPES.skillGap, result),
+            Session.updateOne(
+                { sessionId },
+                { $set: { cachedSkillGapData: result, lastActiveAt: new Date() } }
+            ),
+        ]);
 
         res.json(result);
 
@@ -147,8 +211,7 @@ router.post('/skills', async (req, res) => {
 /**
  * POST /api/analyze/interview-prep
  * Generate interview questions based on resume and JD.
- * Returns cached result if available, otherwise generates and caches.
- * Body: { sessionId: string, forceRefresh?: boolean }
+ * Cache hierarchy: Redis → MongoDB → LLM (generate + cache both)
  */
 router.post('/interview-prep', async (req, res) => {
     try {
@@ -159,15 +222,26 @@ router.post('/interview-prep', async (req, res) => {
             return res.status(400).json({ error: 'Session ID is required' });
         }
 
-        // Check for cached data first
+        // ── 1. Redis fast path ────────────────────────────────────────────────
+        if (!forceRefresh) {
+            const redisResult = await getAnalysisCache(sessionId, TYPES.interview);
+            if (redisResult) {
+                console.log(`[InterviewPrep] Redis HIT for session ${sessionId}`);
+                return res.json(redisResult);
+            }
+        }
+
+        // ── 2. MongoDB fallback ───────────────────────────────────────────────
         if (!forceRefresh) {
             const session = await Session.findOne({ sessionId });
             if (session && session.userId.toString() === userId.toString() && session.cachedInterviewData) {
-                console.log(`[InterviewPrep] Returning cached result for session ${sessionId}`);
+                console.log(`[InterviewPrep] MongoDB cache HIT for session ${sessionId}`);
+                await setAnalysisCache(sessionId, TYPES.interview, session.cachedInterviewData);
                 return res.json(session.cachedInterviewData);
             }
         }
 
+        // ── 3. Generate via LLM ───────────────────────────────────────────────
         const texts = await getSessionTexts(sessionId, userId);
         if (!texts) {
             return res.status(404).json({ error: 'Session not found or access denied' });
@@ -182,11 +256,14 @@ router.post('/interview-prep', async (req, res) => {
 
         const result = await generateInterviewQuestions(resumeText, jdText);
 
-        // Cache the result in MongoDB
-        await Session.updateOne(
-            { sessionId },
-            { $set: { cachedInterviewData: result, lastActiveAt: new Date() } }
-        );
+        // ── 4. Dual write: Redis + MongoDB ────────────────────────────────────
+        await Promise.all([
+            setAnalysisCache(sessionId, TYPES.interview, result),
+            Session.updateOne(
+                { sessionId },
+                { $set: { cachedInterviewData: result, lastActiveAt: new Date() } }
+            ),
+        ]);
 
         res.json(result);
 
