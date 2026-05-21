@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
-import axios from 'axios';
 import clsx from 'clsx';
 
 const UploadZone = ({ onUpload, type, label, acceptedFile }) => {
-    const [uploading, setUploading] = useState(false);
     const [error, setError] = useState(null);
 
     const onDrop = async (acceptedFiles) => {
         const file = acceptedFiles[0];
         if (!file) return;
 
-        setUploading(true);
         setError(null);
 
         const formData = new FormData();
@@ -26,10 +23,8 @@ const UploadZone = ({ onUpload, type, label, acceptedFile }) => {
             // or we return the file object and parent uploads. 
             // Actually, let's just upload here for simplicity and pass callback.
             onUpload(file);
-        } catch (err) {
+        } catch {
             setError('Upload failed');
-        } finally {
-            setUploading(false);
         }
     };
 

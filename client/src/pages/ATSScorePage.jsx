@@ -14,7 +14,7 @@ const ATSScorePage = () => {
         if (isReady && !atsData && !analyzing && !analysisError && !loadingCachedData) {
             runAnalysis();
         }
-    }, [isReady, atsData, loadingCachedData]);
+    }, [isReady, atsData, analyzing, analysisError, loadingCachedData, runAnalysis]);
 
     const handleDownload = async () => {
         setDownloading(true);

@@ -61,7 +61,9 @@ const DashboardLayout = ({ children }) => {
 
                         {/* Navigation Tabs */}
                         <nav className="flex items-center gap-1">
-                            {navItems.map(({ to, label, icon: Icon, alwaysEnabled }) => {
+                        {navItems.map((item) => {
+                                const { to, label, alwaysEnabled } = item;
+                                const Icon = item.icon;
                                 const disabled = !alwaysEnabled && !isReady;
                                 return (
                                     <NavLink

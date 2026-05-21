@@ -14,7 +14,7 @@ const SkillGapPage = () => {
         if (isReady && !skillGapData && !analyzing && !analysisError && !loadingCachedData) {
             runAnalysis();
         }
-    }, [isReady, skillGapData, loadingCachedData]);
+    }, [isReady, skillGapData, analyzing, analysisError, loadingCachedData, runAnalysis]);
 
     const handleDownload = async () => {
         setDownloading(true);

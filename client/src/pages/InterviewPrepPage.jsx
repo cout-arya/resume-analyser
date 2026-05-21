@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSession } from '../context/SessionContext';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap, Upload, Loader2, RefreshCw, ChevronDown, ChevronUp, Download } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 
 const TYPE_COLORS = {
@@ -30,7 +31,7 @@ const InterviewPrepPage = () => {
         setError(null);
         try {
             await runInterviewPrep();
-        } catch (err) {
+        } catch {
             setError('Failed to generate questions. Please try again.');
         } finally {
             setLoading(false);

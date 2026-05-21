@@ -18,7 +18,7 @@ import { SessionProvider, useSession } from './context/SessionContext';
  * Analyzer page — upload documents + RAG chat
  */
 function AnalyzerPage() {
-  const { sessionId, resumeFile, jdFile, uploading, isReady, handleUpload } = useSession();
+  const { sessionId, resumeFile, jdFile, isReady, handleUpload } = useSession();
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

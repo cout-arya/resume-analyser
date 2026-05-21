@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -32,9 +32,9 @@ const GoogleSignInButton = () => {
                 logo_alignment: 'left'
             });
         }
-    }, []);
+    }, [handleGoogleResponse]);
 
-    const handleGoogleResponse = async (response) => {
+    const handleGoogleResponse = useCallback(async (response) => {
         setError('');
         setLoading(true);
         try {
@@ -46,7 +46,7 @@ const GoogleSignInButton = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [googleLogin, navigate]);
 
     if (!GOOGLE_CLIENT_ID) {
         return null; // Don't render if no client ID configured

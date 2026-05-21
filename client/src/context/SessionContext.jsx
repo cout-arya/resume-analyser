@@ -24,7 +24,7 @@ export const SessionProvider = ({ children }) => {
     const [loadingSessions, setLoadingSessions] = useState(false);
     const [loadingCachedData, setLoadingCachedData] = useState(false);
 
-    const { api, logout } = useAuth();
+    const { api } = useAuth();
 
     const isReady = !!sessionId && !!resumeFile && !!jdFile;
 
@@ -283,4 +283,5 @@ export const SessionProvider = ({ children }) => {
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useSession = () => useContext(SessionContext);

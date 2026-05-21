@@ -36,7 +36,7 @@ const ChatInterface = ({ sessionId, isReady }) => {
         if (isReady && messages.length === 1 && messages[0].role === 'system') {
             setMessages(prev => [...prev, { role: 'system', content: 'Documents processed. You can now ask questions specifically about your fit for this role.' }]);
         }
-    }, [isReady]);
+    }, [isReady, messages, setMessages]);
 
     const handleSend = async (question) => {
         const userMsg = typeof question === 'string' ? question : input;
@@ -66,7 +66,7 @@ const ChatInterface = ({ sessionId, isReady }) => {
             if (updatedHistory) {
                 setConversationHistory(updatedHistory);
             }
-        } catch (error) {
+        } catch {
             setMessages(prev => [...prev, { role: 'system', content: 'Error generating response. Please try again.' }]);
         } finally {
             setLoading(false);
