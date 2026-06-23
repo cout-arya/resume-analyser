@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { BrainCircuit, FileText, TrendingUp, BarChart3, GraduationCap, LogOut, PanelLeftOpen, PanelLeftClose, Plus, Trash2, Loader2 } from 'lucide-react';
+import { BrainCircuit, FileText, TrendingUp, BarChart3, GraduationCap, Lightbulb, FileSignature, LogOut, PanelLeftOpen, PanelLeftClose, Plus, Trash2, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSession } from '../context/SessionContext';
 
@@ -20,6 +20,8 @@ const DashboardLayout = ({ children }) => {
         { to: '/dashboard/ats-score', label: 'ATS Score', icon: TrendingUp, alwaysEnabled: false },
         { to: '/dashboard/skill-gap', label: 'Skill Gap', icon: BarChart3, alwaysEnabled: false },
         { to: '/dashboard/interview-prep', label: 'Interview Prep', icon: GraduationCap, alwaysEnabled: false },
+        { to: '/dashboard/suggestions', label: 'Suggestions', icon: Lightbulb, alwaysEnabled: false },
+        { to: '/dashboard/cover-letter', label: 'Cover Letter', icon: FileSignature, alwaysEnabled: false },
     ];
 
     const handleLoadSession = (session) => {
@@ -61,7 +63,7 @@ const DashboardLayout = ({ children }) => {
 
                         {/* Navigation Tabs */}
                         <nav className="flex items-center gap-1">
-                        {navItems.map((item) => {
+                            {navItems.map((item) => {
                                 const { to, label, alwaysEnabled } = item;
                                 const Icon = item.icon;
                                 const disabled = !alwaysEnabled && !isReady;

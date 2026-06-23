@@ -12,8 +12,11 @@ export const SessionProvider = ({ children }) => {
     const [atsData, setAtsData] = useState(null);
     const [skillGapData, setSkillGapData] = useState(null);
     const [interviewData, setInterviewData] = useState(null);
+    const [suggestionsData, setSuggestionsData] = useState(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisError, setAnalysisError] = useState(null);
+
+
 
     const [conversationHistory, setConversationHistory] = useState([]);
     // Chat messages persist across tab navigation (lifted from ChatInterface)
@@ -49,17 +52,14 @@ export const SessionProvider = ({ children }) => {
         try {
             const response = await api.get('/api/sessions');
             setPastSessions(response.data);
+            return response.data;
         } catch (error) {
             console.error('Failed to fetch sessions', error);
+            return null;
         } finally {
             setLoadingSessions(false);
         }
     }, [api]);
-
-    // Fetch sessions on mount
-    useEffect(() => {
-        fetchSessions();
-    }, [fetchSessions]);
 
     /**
      * Load cached analysis data from the server when a session becomes ready.
@@ -73,11 +73,12 @@ export const SessionProvider = ({ children }) => {
 
         try {
             const response = await api.get(`/api/analyze/cached/${sid}`);
-            const { atsData: cachedAts, skillGapData: cachedSkillGap, interviewData: cachedInterview, conversationHistory: cachedHistory } = response.data;
+            const { atsData: cachedAts, skillGapData: cachedSkillGap, interviewData: cachedInterview, conversationHistory: cachedHistory, suggestionsData: cachedSuggestions } = response.data;
 
             if (cachedAts) setAtsData(cachedAts);
             if (cachedSkillGap) setSkillGapData(cachedSkillGap);
             if (cachedInterview) setInterviewData(cachedInterview);
+            if (cachedSuggestions) setSuggestionsData(cachedSuggestions);
 
             // Restore conversation history
             if (cachedHistory && cachedHistory.length > 0) {
@@ -122,6 +123,7 @@ export const SessionProvider = ({ children }) => {
         setAtsData(null);
         setSkillGapData(null);
         setInterviewData(null);
+        setSuggestionsData(null);
         setAnalysisError(null);
         setConversationHistory([]);
         setChatMessages([
@@ -136,11 +138,14 @@ export const SessionProvider = ({ children }) => {
      */
     const newSession = () => {
         setSessionId(null);
+        localStorage.removeItem('jdfit_active_session');
         setResumeFile(null);
         setJdFile(null);
         setAtsData(null);
         setSkillGapData(null);
         setInterviewData(null);
+        setSuggestionsData(null);
+
         setAnalysisError(null);
         setConversationHistory([]);
         setChatMessages([
@@ -186,6 +191,8 @@ export const SessionProvider = ({ children }) => {
                 setAtsData(null);
                 setSkillGapData(null);
                 setInterviewData(null);
+                setSuggestionsData(null);
+                setSuggestionsData(null);
                 setAnalysisError(null);
                 setConversationHistory([]);
                 setChatMessages([
@@ -268,10 +275,35 @@ export const SessionProvider = ({ children }) => {
         }
     };
 
+    // Sync sessionId to localStorage
+    useEffect(() => {
+        if (sessionId) {
+            localStorage.setItem('jdfit_active_session', sessionId);
+        } else {
+            localStorage.removeItem('jdfit_active_session');
+        }
+    }, [sessionId]);
+
+    // Fetch sessions and restore active session on mount
+    useEffect(() => {
+        fetchSessions().then(sessions => {
+            if (!sessions) return;
+            const savedSessionId = localStorage.getItem('jdfit_active_session');
+            if (savedSessionId) {
+                const sessionToRestore = sessions.find(s => s.sessionId === savedSessionId);
+                if (sessionToRestore) {
+                    loadSession(sessionToRestore);
+                }
+            }
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return (
         <SessionContext.Provider value={{
             sessionId, resumeFile, jdFile, uploading, isReady,
-            atsData, skillGapData, interviewData, analyzing, analysisError,
+            atsData, skillGapData, interviewData, suggestionsData, setSuggestionsData,
+            analyzing, analysisError,
             conversationHistory, setConversationHistory,
             chatMessages, setChatMessages,
             pastSessions, loadingSessions, loadingCachedData,

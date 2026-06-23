@@ -20,6 +20,18 @@ const sessionSchema = new mongoose.Schema({
     cachedAtsData: { type: mongoose.Schema.Types.Mixed, default: null },
     cachedSkillGapData: { type: mongoose.Schema.Types.Mixed, default: null },
     cachedInterviewData: { type: mongoose.Schema.Types.Mixed, default: null },
+    // Resume bullet suggestions
+    suggestions: [{
+        id: String,
+        originalBullet: String,
+        reason: String,
+        rewrittenBullet: String,
+        confidence: { type: String, enum: ['high', 'medium', 'low'] },
+        category: String,
+        accepted: { type: Boolean, default: false }
+    }],
+    // Cover letter text
+    coverLetter: { type: String, default: null },
     lastActiveAt: { type: Date, default: Date.now },
     createdAt: { type: Date, default: Date.now }
 });

@@ -53,6 +53,8 @@ async function extractText(buffer, mimetype) {
         ) {
             const result = await mammoth.extractRawText({ buffer });
             return cleanText(result.value);
+        } else if (mimetype === 'text/plain') {
+            return cleanText(buffer.toString('utf-8'));
         } else {
             throw new Error(`Unsupported file type: ${mimetype}`);
         }

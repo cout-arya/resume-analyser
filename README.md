@@ -12,10 +12,13 @@ A production-ready, RAG-powered web application that intelligently analyzes resu
 ## 🌟 Key Features (v3.0 Upgrades)
 
 - **🤖 Multi-Dimensional ATS Scoring:** Evaluates Keyword Match (25%), Semantic Alignment (30%), Experience Relevance (20%), Formatting Quality (15%), and Quantifiable Impact (10%).
+- **💡 Resume Bullet Suggestion Engine:** LLM-powered suggestions with hallucination validation using Levenshtein similarity to directly improve your ATS fit.
 - **🧠 Advanced Skill Gap Analysis:** AI-driven categorization of matched, partial, and missing skills with actionable suggestions. Smart filtering of PDF artifacts.
+- **✉️ Cover Letter Generator:** Streaming Server-Sent Events (SSE) AI generation with customizable tones (Formal, Confident, Concise) and instant PDF export.
+
 - **💬 Interactive RAG Q&A:** Threaded conversational memory with predefined suggestion chips and LLM-powered context awareness.
 - **🎯 Interview Prep Generation:** Automatically generates behavioral, technical, and situational interview questions with difficulty levels and answering strategies.
-- **📄 Downloadable PDF Reports:** Professional A4-formatted ATS and Skill Gap reports for offline sharing.
+- **📄 Downloadable PDF Reports:** Professional A4-formatted ATS, Skill Gap, and Cover Letter reports for offline sharing.
 - **🔒 Secure Architecture:** JWT-based authentication with auto-refreshing tokens, CORS whitelisting, tiered rate limiting, and MongoDB-backed session persistence.
 
 ---

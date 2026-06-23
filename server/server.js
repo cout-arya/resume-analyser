@@ -8,6 +8,7 @@ const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const analyzeRoutes = require('./routes/analyzeRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const coverLetterRoutes = require('./routes/coverLetter');
 const path = require('path');
 const { getClient, isRedisAvailable } = require('./utils/redisClient');
 
@@ -80,7 +81,9 @@ app.use('/api/auth/', authLimiter);
 app.use('/api/analyze/score', analyzeLimiter);
 app.use('/api/analyze/skills', analyzeLimiter);
 app.use('/api/analyze/interview-prep', analyzeLimiter);
+app.use('/api/analyze/suggestions', analyzeLimiter);
 app.use('/api/chat', analyzeLimiter);
+app.use('/api/cover-letter/generate', analyzeLimiter);
 app.use('/api/', apiLimiter);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
@@ -88,6 +91,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 app.use('/api/analyze', analyzeRoutes);
 app.use('/api/report', reportRoutes);
+app.use('/api/cover-letter', coverLetterRoutes);
+
 
 // ─── Database Connection ─────────────────────────────────────────────────────
 if (process.env.MONGO_URI) {

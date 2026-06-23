@@ -11,6 +11,20 @@ const GoogleSignInButton = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const handleGoogleResponse = useCallback(async (response) => {
+        setError('');
+        setLoading(true);
+        try {
+            await googleLogin(response.credential);
+            navigate('/dashboard', { replace: true });
+        } catch (err) {
+            console.error('Google login failed:', err);
+            setError(err.response?.data?.error || 'Google sign-in failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    }, [googleLogin, navigate]);
+
     useEffect(() => {
         if (!GOOGLE_CLIENT_ID || !window.google?.accounts?.id) return;
 
@@ -33,20 +47,6 @@ const GoogleSignInButton = () => {
             });
         }
     }, [handleGoogleResponse]);
-
-    const handleGoogleResponse = useCallback(async (response) => {
-        setError('');
-        setLoading(true);
-        try {
-            await googleLogin(response.credential);
-            navigate('/dashboard', { replace: true });
-        } catch (err) {
-            console.error('Google login failed:', err);
-            setError(err.response?.data?.error || 'Google sign-in failed. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    }, [googleLogin, navigate]);
 
     if (!GOOGLE_CLIENT_ID) {
         return null; // Don't render if no client ID configured

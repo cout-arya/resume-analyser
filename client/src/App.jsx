@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import UploadZone from './components/FileUpload';
@@ -11,6 +11,8 @@ import DashboardLayout from './components/DashboardLayout';
 import ATSScorePage from './pages/ATSScorePage';
 import SkillGapPage from './pages/SkillGapPage';
 import InterviewPrepPage from './pages/InterviewPrepPage';
+import SuggestionsPanel from './components/SuggestionsPanel';
+import CoverLetterPage from './pages/CoverLetterPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SessionProvider, useSession } from './context/SessionContext';
 
@@ -19,6 +21,8 @@ import { SessionProvider, useSession } from './context/SessionContext';
  */
 function AnalyzerPage() {
   const { sessionId, resumeFile, jdFile, isReady, handleUpload } = useSession();
+  const { api } = useAuth();
+  // JD URL Scraping removed
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -42,7 +46,7 @@ function AnalyzerPage() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">2. Job Description (PDF/DOCX)</p>
+              <p className="text-sm font-medium text-gray-700">2. Job Description</p>
               <UploadZone
                 type="jd"
                 label="Upload Job Description"
@@ -57,8 +61,8 @@ function AnalyzerPage() {
           <h3 className="font-semibold text-indigo-900 mb-2">How to use</h3>
           <ul className="text-sm text-indigo-800 space-y-2 list-disc pl-4">
             <li>Upload your formatted Resume.</li>
-            <li>Upload the Job Description you want to analyze.</li>
-            <li>Navigate to <strong>ATS Score</strong>, <strong>Skill Gap</strong>, and <strong>Interview Prep</strong> tabs.</li>
+            <li>Upload the JD or paste a job listing URL.</li>
+            <li>Navigate to <strong>ATS Score</strong>, <strong>Skill Gap</strong>, <strong>Suggestions</strong>, and more.</li>
             <li>Ask the AI Assistant questions about your fit, missing skills, or interview prep.</li>
           </ul>
         </div>
@@ -125,6 +129,8 @@ function DashboardWrapper() {
           <Route path="ats-score" element={<ATSScorePage />} />
           <Route path="skill-gap" element={<SkillGapPage />} />
           <Route path="interview-prep" element={<InterviewPrepPage />} />
+          <Route path="suggestions" element={<SuggestionsPanel />} />
+          <Route path="cover-letter" element={<CoverLetterPage />} />
         </Routes>
       </DashboardLayout>
     </SessionProvider>

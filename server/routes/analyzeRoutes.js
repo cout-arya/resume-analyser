@@ -5,6 +5,7 @@ const { getSessionTexts } = require('../controllers/analyzeController');
 const { calculateATSScore } = require('../services/atsScoringService');
 const { analyzeSkillGap } = require('../services/skillGapService');
 const { generateInterviewQuestions } = require('../services/interviewPrepService');
+const { generateSuggestions } = require('../services/suggestionService');
 const Session = require('../models/Session');
 const { getAnalysisCache, setAnalysisCache, TYPES } = require('../utils/analysisCache');
 const { getChatHistory } = require('../utils/chatCache');
@@ -36,7 +37,7 @@ router.get('/cached/:sessionId', async (req, res) => {
             // At least some Redis data available — still need Mongo for any missing pieces
             // and to verify ownership.
             const session = await Session.findOne({ sessionId })
-                .select('userId cachedAtsData cachedSkillGapData cachedInterviewData conversationHistory');
+                .select('userId cachedAtsData cachedSkillGapData cachedInterviewData conversationHistory suggestions');
 
             if (!session || session.userId.toString() !== userId.toString()) {
                 return res.status(404).json({ error: 'Session not found or access denied' });
@@ -50,6 +51,7 @@ router.get('/cached/:sessionId', async (req, res) => {
                     role: h.role,
                     content: h.content
                 })),
+                suggestionsData: session.suggestions && session.suggestions.length > 0 ? { suggestions: session.suggestions } : null,
                 source: 'redis',
             });
         }
@@ -64,6 +66,7 @@ router.get('/cached/:sessionId', async (req, res) => {
             atsData: session.cachedAtsData || null,
             skillGapData: session.cachedSkillGapData || null,
             interviewData: session.cachedInterviewData || null,
+            suggestionsData: session.suggestions && session.suggestions.length > 0 ? { suggestions: session.suggestions } : null,
             conversationHistory: (session.conversationHistory || []).map(h => ({
                 role: h.role,
                 content: h.content
@@ -270,6 +273,86 @@ router.post('/interview-prep', async (req, res) => {
     } catch (error) {
         console.error('Interview prep error:', error);
         res.status(500).json({ error: 'Failed to generate interview questions' });
+    }
+});
+
+/**
+ * POST /api/analyze/suggestions
+ * Generate resume bullet improvement suggestions via LLM.
+ */
+router.post('/suggestions', async (req, res) => {
+    try {
+        const { sessionId, matchedSkills, missingSkills } = req.body;
+        const userId = req.user.id;
+
+        if (!sessionId) {
+            return res.status(400).json({ error: 'Session ID is required' });
+        }
+
+        const texts = await getSessionTexts(sessionId, userId);
+        if (!texts) {
+            return res.status(404).json({ error: 'Session not found or access denied' });
+        }
+
+        const { resumeText, jdText } = texts;
+        if (!resumeText || !jdText) {
+            return res.status(400).json({ error: `Backend validation failed: resumeText length is ${resumeText ? resumeText.length : 0}, jdText length is ${jdText ? jdText.length : 0}. Please upload valid documents containing readable text.` });
+        }
+
+        // Verify session ownership
+        const session = await Session.findOne({ sessionId });
+        if (!session || session.userId.toString() !== userId.toString()) {
+            return res.status(404).json({ error: 'Session not found or access denied' });
+        }
+
+        const result = await generateSuggestions(
+            resumeText,
+            jdText,
+            matchedSkills || [],
+            missingSkills || []
+        );
+
+        // Persist suggestions to session
+        await Session.updateOne(
+            { sessionId },
+            { $set: { suggestions: result.suggestions, lastActiveAt: new Date() } }
+        );
+
+        res.json(result);
+
+    } catch (error) {
+        console.error('Suggestion generation error:', error);
+        res.status(500).json({ error: 'Failed to generate suggestions' });
+    }
+});
+
+/**
+ * PATCH /api/analyze/suggestions/:sessionId/:suggestionId
+ * Toggle accepted status of a suggestion.
+ */
+router.patch('/suggestions/:sessionId/:suggestionId', async (req, res) => {
+    try {
+        const { sessionId, suggestionId } = req.params;
+        const userId = req.user.id;
+
+        const session = await Session.findOne({ sessionId });
+        if (!session || session.userId.toString() !== userId.toString()) {
+            return res.status(404).json({ error: 'Session not found or access denied' });
+        }
+
+        const suggestion = session.suggestions.find(s => s.id === suggestionId);
+        if (!suggestion) {
+            return res.status(404).json({ error: 'Suggestion not found' });
+        }
+
+        suggestion.accepted = !suggestion.accepted;
+        await session.save();
+
+        res.json({ success: true, accepted: suggestion.accepted });
+
+    } catch (error) {
+        console.error('Suggestion toggle error:', error);
+        res.status(500).json({ error: 'Failed to update suggestion' });
     }
 });
 
