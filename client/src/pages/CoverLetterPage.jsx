@@ -36,11 +36,13 @@ export default function CoverLetterPage() {
         try {
             const textsRes = await api.get(`/api/analyze/cached/${sessionId}`);
             const cached = textsRes.data;
-            const resumeText = cached.atsData?.resumeText || '';
-            const jobDescription = cached.atsData?.jdText || '';
+            // Use top-level resumeText/jdText from session files (always available after upload)
+            // Fall back to atsData fields for backward compatibility
+            const resumeText = cached.resumeText || cached.atsData?.resumeText || '';
+            const jobDescription = cached.jdText || cached.atsData?.jdText || '';
 
             if (!resumeText || !jobDescription) {
-                setError('Please complete ATS analysis first so we have your resume and JD text.');
+                setError('Could not retrieve your resume or JD text. Please re-upload your documents.');
                 setGenerating(false);
                 return;
             }

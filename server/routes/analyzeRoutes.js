@@ -37,10 +37,20 @@ router.get('/cached/:sessionId', async (req, res) => {
             // At least some Redis data available — still need Mongo for any missing pieces
             // and to verify ownership.
             const session = await Session.findOne({ sessionId })
-                .select('userId cachedAtsData cachedSkillGapData cachedInterviewData conversationHistory suggestions');
+                .select('userId files cachedAtsData cachedSkillGapData cachedInterviewData conversationHistory suggestions');
 
             if (!session || session.userId.toString() !== userId.toString()) {
                 return res.status(404).json({ error: 'Session not found or access denied' });
+            }
+
+            // Extract raw texts from session files for cover letter etc.
+            let resumeText = null;
+            let jdText = null;
+            if (session.files) {
+                for (const file of session.files) {
+                    if (file.type === 'resume' && file.text) resumeText = file.text;
+                    if (file.type === 'jd' && file.text) jdText = file.text;
+                }
             }
 
             return res.json({
@@ -52,6 +62,8 @@ router.get('/cached/:sessionId', async (req, res) => {
                     content: h.content
                 })),
                 suggestionsData: session.suggestions && session.suggestions.length > 0 ? { suggestions: session.suggestions } : null,
+                resumeText,
+                jdText,
                 source: 'redis',
             });
         }
@@ -60,6 +72,16 @@ router.get('/cached/:sessionId', async (req, res) => {
         const session = await Session.findOne({ sessionId });
         if (!session || session.userId.toString() !== userId.toString()) {
             return res.status(404).json({ error: 'Session not found or access denied' });
+        }
+
+        // Extract raw texts from session files for cover letter etc.
+        let resumeText = null;
+        let jdText = null;
+        if (session.files) {
+            for (const file of session.files) {
+                if (file.type === 'resume' && file.text) resumeText = file.text;
+                if (file.type === 'jd' && file.text) jdText = file.text;
+            }
         }
 
         res.json({
@@ -71,6 +93,8 @@ router.get('/cached/:sessionId', async (req, res) => {
                 role: h.role,
                 content: h.content
             })),
+            resumeText,
+            jdText,
             source: 'mongodb',
         });
 
