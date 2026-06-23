@@ -42,84 +42,87 @@ const DashboardLayout = ({ children }) => {
             <header className="bg-white border-b-4 border-zinc-900 sticky top-0 z-20 shadow-[0px_4px_0px_#18181b]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-[4.5rem]">
-                        {/* Logo + Sidebar Toggle */}
-                        <div className="flex items-center gap-4 shrink-0">
-                            <button
-                                onClick={() => setSidebarOpen(!sidebarOpen)}
-                                className="p-2 text-zinc-900 hover:bg-lime-400 border-2 border-transparent hover:border-zinc-900 rounded-xl transition-all hover:shadow-[2px_2px_0px_#18181b]"
-                                title="Session history"
-                            >
-                                {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
-                            </button>
 
-                            <Link to="/" className="flex items-center gap-2 group hidden sm:flex">
-                                <div className="w-10 h-10 bg-lime-400 text-zinc-900 rounded-xl border-2 border-zinc-900 shadow-[2px_2px_0px_#18181b] flex items-center justify-center font-black group-hover:-translate-y-1 transition-transform">
-                                    <span className="material-symbols-outlined text-[20px]">bolt</span>
-                                </div>
-                                <h1 className="text-2xl font-black tracking-tighter font-headline ml-1 text-zinc-900">
-                                    JDFit
-                                </h1>
-                            </Link>
+                        <div className="flex items-center gap-8 xl:gap-16">
+                            {/* Logo + Sidebar Toggle */}
+                            <div className="flex items-center gap-4 shrink-0">
+                                <button
+                                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                                    className="p-2 text-zinc-900 hover:bg-lime-400 border-2 border-transparent hover:border-zinc-900 rounded-xl transition-all hover:shadow-[2px_2px_0px_#18181b]"
+                                    title="Session history"
+                                >
+                                    {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+                                </button>
+
+                                <Link to="/" className="flex items-center gap-2 group hidden sm:flex">
+                                    <div className="w-10 h-10 bg-lime-400 text-zinc-900 rounded-xl border-2 border-zinc-900 shadow-[2px_2px_0px_#18181b] flex items-center justify-center font-black group-hover:-translate-y-1 transition-transform">
+                                        <span className="material-symbols-outlined text-[20px]">bolt</span>
+                                    </div>
+                                    <h1 className="text-2xl font-black tracking-tighter font-headline ml-1 text-zinc-900">
+                                        JDFit
+                                    </h1>
+                                </Link>
+                            </div>
+
+                            {/* Navigation Tabs */}
+                            <nav className="hidden xl:flex items-center gap-4">
+                                {navItems.map((item) => {
+                                    const { to, label, alwaysEnabled } = item;
+                                    const Icon = item.icon;
+                                    const disabled = !alwaysEnabled && !isReady;
+                                    return (
+                                        <NavLink
+                                            key={to}
+                                            to={to}
+                                            end={to === '/dashboard'}
+                                            onClick={(e) => disabled && e.preventDefault()}
+                                            className={({ isActive }) => {
+                                                const base = 'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border-2';
+                                                if (disabled) return `${base} text-zinc-300 border-transparent cursor-not-allowed`;
+                                                if (isActive) return `${base} bg-lime-400 text-zinc-900 border-zinc-900 shadow-[2px_2px_0px_#18181b] -translate-y-0.5`;
+                                                return `${base} text-zinc-500 border-transparent hover:text-zinc-900 hover:bg-zinc-100`;
+                                            }}
+                                            title={disabled ? 'Upload both documents first' : ''}
+                                        >
+                                            {({ isActive }) => (
+                                                <>
+                                                    <Icon size={16} strokeWidth={isActive ? 3 : 2} />
+                                                    <span>{label}</span>
+                                                </>
+                                            )}
+                                        </NavLink>
+                                    );
+                                })}
+                            </nav>
+
+                            {/* Mobile Navigation Dropdown (simplified version mapping to icon-only) */}
+                            <nav className="flex xl:hidden items-center gap-2">
+                                {navItems.map((item) => {
+                                    const { to, alwaysEnabled } = item;
+                                    const Icon = item.icon;
+                                    const disabled = !alwaysEnabled && !isReady;
+                                    return (
+                                        <NavLink
+                                            key={to}
+                                            to={to}
+                                            end={to === '/dashboard'}
+                                            onClick={(e) => disabled && e.preventDefault()}
+                                            className={({ isActive }) => {
+                                                const base = 'flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 border-2';
+                                                if (disabled) return `${base} text-zinc-300 border-transparent cursor-not-allowed`;
+                                                if (isActive) return `${base} bg-lime-400 text-zinc-900 border-zinc-900 shadow-[2px_2px_0px_#18181b] -translate-y-0.5`;
+                                                return `${base} text-zinc-500 border-transparent hover:text-zinc-900 hover:bg-zinc-100`;
+                                            }}
+                                            title={disabled ? 'Upload both documents first' : item.label}
+                                        >
+                                            {({ isActive }) => (
+                                                <Icon size={18} strokeWidth={isActive ? 3 : 2} />
+                                            )}
+                                        </NavLink>
+                                    );
+                                })}
+                            </nav>
                         </div>
-
-                        {/* Navigation Tabs */}
-                        <nav className="hidden xl:flex items-center gap-4">
-                            {navItems.map((item) => {
-                                const { to, label, alwaysEnabled } = item;
-                                const Icon = item.icon;
-                                const disabled = !alwaysEnabled && !isReady;
-                                return (
-                                    <NavLink
-                                        key={to}
-                                        to={to}
-                                        end={to === '/dashboard'}
-                                        onClick={(e) => disabled && e.preventDefault()}
-                                        className={({ isActive }) => {
-                                            const base = 'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 border-2';
-                                            if (disabled) return `${base} text-zinc-300 border-transparent cursor-not-allowed`;
-                                            if (isActive) return `${base} bg-lime-400 text-zinc-900 border-zinc-900 shadow-[2px_2px_0px_#18181b] -translate-y-0.5`;
-                                            return `${base} text-zinc-500 border-transparent hover:text-zinc-900 hover:bg-zinc-100`;
-                                        }}
-                                        title={disabled ? 'Upload both documents first' : ''}
-                                    >
-                                        {({ isActive }) => (
-                                            <>
-                                                <Icon size={16} strokeWidth={isActive ? 3 : 2} />
-                                                <span>{label}</span>
-                                            </>
-                                        )}
-                                    </NavLink>
-                                );
-                            })}
-                        </nav>
-
-                        {/* Mobile Navigation Dropdown (simplified version mapping to icon-only) */}
-                        <nav className="flex xl:hidden items-center gap-2">
-                            {navItems.map((item) => {
-                                const { to, alwaysEnabled } = item;
-                                const Icon = item.icon;
-                                const disabled = !alwaysEnabled && !isReady;
-                                return (
-                                    <NavLink
-                                        key={to}
-                                        to={to}
-                                        end={to === '/dashboard'}
-                                        onClick={(e) => disabled && e.preventDefault()}
-                                        className={({ isActive }) => {
-                                            const base = 'flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 border-2';
-                                            if (disabled) return `${base} text-zinc-300 border-transparent cursor-not-allowed`;
-                                            if (isActive) return `${base} bg-lime-400 text-zinc-900 border-zinc-900 shadow-[2px_2px_0px_#18181b] -translate-y-0.5`;
-                                            return `${base} text-zinc-500 border-transparent hover:text-zinc-900 hover:bg-zinc-100`;
-                                        }}
-                                        title={disabled ? 'Upload both documents first' : item.label}
-                                    >
-                                        {({ isActive }) => (
-                                            <Icon size={18} strokeWidth={isActive ? 3 : 2} />
-                                        )}
-                                    </NavLink>
-                                );
-                            })}
-                        </nav>
 
                         {/* User Info + Logout */}
                         <div className="flex items-center gap-3 shrink-0">
