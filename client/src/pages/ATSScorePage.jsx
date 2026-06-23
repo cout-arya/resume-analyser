@@ -10,7 +10,6 @@ const ATSScorePage = () => {
     const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
-        // Only run analysis if ready, no data, not already analyzing, and cache isn't loading
         if (isReady && !atsData && !analyzing && !analysisError && !loadingCachedData) {
             runAnalysis();
         }
@@ -27,17 +26,17 @@ const ATSScorePage = () => {
 
     if (!isReady) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="bg-blue-50 p-6 rounded-2xl mb-6">
-                    <Upload size={48} className="text-blue-400" />
+            <div className="flex flex-col items-center justify-center py-20 text-center border-[3px] border-dashed border-zinc-300 rounded-[2rem] bg-zinc-50">
+                <div className="w-20 h-20 bg-zinc-200 border-2 border-zinc-900 shadow-[4px_4px_0px_#18181b] rounded-2xl flex items-center justify-center mb-6">
+                    <Upload size={36} className="text-zinc-600" strokeWidth={2} />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Upload Documents First</h2>
-                <p className="text-gray-500 mb-6 max-w-md">
+                <h2 className="text-3xl font-black text-zinc-900 mb-3 uppercase tracking-tighter">Upload Documents First</h2>
+                <p className="text-zinc-500 font-bold mb-8 max-w-md">
                     Please upload both your resume and a job description on the Analyzer page before viewing your ATS score.
                 </p>
                 <button
                     onClick={() => navigate('/dashboard')}
-                    className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                    className="px-8 py-4 bg-zinc-900 text-lime-400 border-[3px] border-zinc-900 rounded-xl font-black text-lg shadow-[6px_6px_0px_#a3e635] hover:-translate-y-1 hover:shadow-[8px_8px_0px_#a3e635] transition-all uppercase tracking-widest"
                 >
                     Go to Analyzer
                 </button>
@@ -46,38 +45,27 @@ const ATSScorePage = () => {
     }
 
     return (
-        <div className="max-w-2xl mx-auto">
-            <div className="mb-8">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="text-blue-600 bg-blue-50 p-2.5 rounded-xl">
-                            <TrendingUp size={24} />
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900">ATS Score Analysis</h2>
-                            <p className="text-sm text-gray-500">See how well your resume matches the job description</p>
-                        </div>
-                    </div>
-
-                    {atsData && (
-                        <button
-                            onClick={handleDownload}
-                            disabled={downloading}
-                            className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
-                        >
-                            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                            Download Report
-                        </button>
-                    )}
+        <div className="max-w-2xl mx-auto space-y-6">
+            {/* Download button row */}
+            {atsData && (
+                <div className="flex justify-end">
+                    <button
+                        onClick={handleDownload}
+                        disabled={downloading}
+                        className="flex items-center gap-2 px-5 py-2.5 border-[3px] border-zinc-900 text-zinc-900 bg-white rounded-xl text-sm font-black shadow-[4px_4px_0px_#18181b] hover:-translate-y-1 transition-all uppercase tracking-widest disabled:opacity-50"
+                    >
+                        {downloading ? <Loader2 size={16} className="animate-spin" strokeWidth={3} /> : <Download size={16} strokeWidth={3} />}
+                        Download Report
+                    </button>
                 </div>
-            </div>
+            )}
 
             {analysisError && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center justify-between">
+                <div className="p-5 bg-rose-50 border-[3px] border-rose-500 rounded-2xl shadow-[4px_4px_0px_#f43f5e] text-rose-700 font-bold flex items-center justify-between">
                     <span>{analysisError}</span>
                     <button
                         onClick={runAnalysis}
-                        className="px-3 py-1 bg-red-100 hover:bg-red-200 rounded-lg text-xs font-semibold transition-colors"
+                        className="px-4 py-2 bg-rose-500 text-white border-2 border-zinc-900 rounded-xl text-xs font-black uppercase tracking-widest transition-colors"
                     >
                         Retry
                     </button>

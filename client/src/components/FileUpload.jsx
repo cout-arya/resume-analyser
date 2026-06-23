@@ -15,13 +15,8 @@ const UploadZone = ({ onUpload, type, label, acceptedFile }) => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', type);
-        // Determine sessionId from local storage or parent, but for MVP simpler to just pass or let backend handle new
-        // logic: if session exists in parent, use it, else backend creates new
 
         try {
-            // We'll let parent handle the actual API call to keep session sync simple, 
-            // or we return the file object and parent uploads. 
-            // Actually, let's just upload here for simplicity and pass callback.
             onUpload(file);
         } catch {
             setError('Upload failed');
@@ -41,23 +36,27 @@ const UploadZone = ({ onUpload, type, label, acceptedFile }) => {
         <div
             {...getRootProps()}
             className={clsx(
-                "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
-                isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-400",
-                acceptedFile ? "bg-green-50 border-green-500" : "bg-white"
+                "border-[3px] rounded-2xl p-8 text-center cursor-pointer transition-all duration-300",
+                isDragActive ? "border-zinc-900 bg-lime-50 shadow-[6px_6px_0px_#18181b] -translate-y-1" : "border-zinc-900 hover:shadow-[6px_6px_0px_#18181b] hover:-translate-y-1 hover:-translate-x-0.5",
+                acceptedFile ? "bg-lime-400 border-zinc-900 shadow-[4px_4px_0px_#18181b]" : "bg-white shadow-[4px_4px_0px_#18181b]"
             )}
         >
             <input {...getInputProps()} />
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-3">
                 {acceptedFile ? (
-                    <CheckCircle className="w-8 h-8 text-green-500" />
+                    <div className="w-14 h-14 bg-white rounded-xl border-2 border-zinc-900 shadow-[2px_2px_0px_#18181b] flex items-center justify-center">
+                        <CheckCircle className="w-8 h-8 text-lime-600" strokeWidth={3} />
+                    </div>
                 ) : (
-                    <Upload className="w-8 h-8 text-gray-400" />
+                    <div className="w-14 h-14 bg-zinc-100 rounded-xl border-2 border-zinc-900 shadow-[2px_2px_0px_#18181b] flex items-center justify-center group-hover:bg-lime-400 transition-colors">
+                        <Upload className="w-7 h-7 text-zinc-900" strokeWidth={2.5} />
+                    </div>
                 )}
-                <p className="font-medium text-gray-700">{label}</p>
-                <p className="text-sm text-gray-500">
-                    {acceptedFile ? acceptedFile.name : "Drag & drop or click to upload"}
+                <h3 className="font-black text-zinc-900 text-lg uppercase tracking-tight">{label}</h3>
+                <p className="text-sm font-bold text-zinc-600 px-4">
+                    {acceptedFile ? acceptedFile.name : "Drag & drop or click to browse"}
                 </p>
-                {error && <p className="text-red-500 text-sm flex items-center gap-1"><AlertCircle size={12} /> {error}</p>}
+                {error && <p className="text-rose-600 text-sm flex items-center gap-1 font-bold mt-2"><AlertCircle size={16} strokeWidth={3} /> {error}</p>}
             </div>
         </div>
     );

@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
 import { useSession } from '../context/SessionContext';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Upload, Loader2, RefreshCw, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { GraduationCap, Upload, Loader2, RefreshCw, ChevronDown, ChevronUp, Download, Lightbulb } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 
 const TYPE_COLORS = {
-    'Behavioral': 'bg-blue-50 text-blue-700 border-blue-200',
-    'Technical': 'bg-purple-50 text-purple-700 border-purple-200',
-    'Situational': 'bg-amber-50 text-amber-700 border-amber-200',
-    'Role-specific': 'bg-teal-50 text-teal-700 border-teal-200'
+    'Behavioral': 'bg-lime-400 text-zinc-900 border-zinc-900',
+    'Technical': 'bg-zinc-800 text-white border-zinc-900',
+    'Situational': 'bg-amber-400 text-zinc-900 border-zinc-900',
+    'Role-specific': 'bg-teal-400 text-zinc-900 border-zinc-900'
 };
 
 const DIFFICULTY_COLORS = {
-    'Easy': 'bg-green-50 text-green-700',
-    'Medium': 'bg-amber-50 text-amber-700',
-    'Hard': 'bg-red-50 text-red-700'
+    'Easy': 'bg-lime-100 text-zinc-900 border-zinc-300',
+    'Medium': 'bg-amber-100 text-zinc-900 border-zinc-300',
+    'Hard': 'bg-rose-100 text-zinc-900 border-zinc-300'
 };
 
 const InterviewPrepPage = () => {
@@ -49,17 +49,17 @@ const InterviewPrepPage = () => {
 
     if (!isReady) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="bg-teal-50 p-6 rounded-2xl mb-6">
-                    <Upload size={48} className="text-teal-400" />
+            <div className="flex flex-col items-center justify-center py-20 text-center border-[3px] border-dashed border-zinc-300 rounded-[2rem] bg-zinc-50">
+                <div className="w-20 h-20 bg-zinc-200 border-2 border-zinc-900 shadow-[4px_4px_0px_#18181b] rounded-2xl flex items-center justify-center mb-6">
+                    <Upload size={36} className="text-zinc-600" strokeWidth={2} />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Upload Documents First</h2>
-                <p className="text-gray-500 mb-6 max-w-md">
+                <h2 className="text-3xl font-black text-zinc-900 mb-3 uppercase tracking-tighter">Upload Documents First</h2>
+                <p className="text-zinc-500 font-bold mb-8 max-w-md">
                     Please upload both your resume and a job description on the Analyzer page before generating interview questions.
                 </p>
                 <button
                     onClick={() => navigate('/dashboard')}
-                    className="px-6 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors shadow-sm"
+                    className="px-8 py-4 bg-zinc-900 text-lime-400 border-[3px] border-zinc-900 rounded-xl font-black text-lg shadow-[6px_6px_0px_#a3e635] hover:-translate-y-1 hover:shadow-[8px_8px_0px_#a3e635] transition-all uppercase tracking-widest"
                 >
                     Go to Analyzer
                 </button>
@@ -70,55 +70,44 @@ const InterviewPrepPage = () => {
     const questions = interviewData?.questions || [];
 
     return (
-        <div className="max-w-3xl mx-auto">
-            <div className="mb-8">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="text-teal-600 bg-teal-50 p-2.5 rounded-xl">
-                            <GraduationCap size={24} />
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900">Interview Preparation</h2>
-                            <p className="text-sm text-gray-500">AI-generated questions based on your resume and the job description</p>
-                        </div>
-                    </div>
+        <div className="max-w-3xl mx-auto space-y-8">
+            {/* Header */}
+            <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-lime-400 border-2 border-zinc-900 shadow-[4px_4px_0px_#18181b] rounded-2xl flex items-center justify-center">
+                    <GraduationCap size={28} className="text-zinc-900" strokeWidth={2.5} />
+                </div>
+                <div>
+                    <h2 className="text-3xl font-black text-zinc-900 uppercase tracking-tighter">Interview Prep</h2>
+                    <p className="text-sm font-bold text-zinc-500">AI-generated questions based on your resume & JD</p>
                 </div>
             </div>
 
+            {/* Error */}
             {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center justify-between">
+                <div className="p-5 bg-rose-50 border-[3px] border-rose-500 rounded-2xl shadow-[4px_4px_0px_#f43f5e] text-rose-700 font-bold flex items-center justify-between">
                     <span>{error}</span>
                     <button
                         onClick={handleGenerate}
-                        className="px-3 py-1 bg-red-100 hover:bg-red-200 rounded-lg text-xs font-semibold transition-colors"
+                        className="px-4 py-2 bg-rose-500 text-white border-2 border-zinc-900 rounded-xl text-xs font-black uppercase tracking-widest"
                     >
                         Retry
                     </button>
                 </div>
             )}
 
-            {/* Generate / Regenerate buttons */}
-            <div className="flex gap-3 mb-6">
+            {/* Action Buttons */}
+            <div className="flex gap-4">
                 <button
                     onClick={handleGenerate}
                     disabled={loading}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-7 py-4 bg-zinc-900 text-lime-400 border-[3px] border-zinc-900 rounded-xl font-black shadow-[6px_6px_0px_#a3e635] hover:-translate-y-1 hover:shadow-[8px_8px_0px_#a3e635] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none transition-all uppercase tracking-widest"
                 >
                     {loading ? (
-                        <>
-                            <Loader2 size={16} className="animate-spin" />
-                            Generating...
-                        </>
+                        <><Loader2 size={20} className="animate-spin" strokeWidth={3} /> Generating...</>
                     ) : questions.length > 0 ? (
-                        <>
-                            <RefreshCw size={16} />
-                            Regenerate
-                        </>
+                        <><RefreshCw size={20} strokeWidth={3} /> Regenerate</>
                     ) : (
-                        <>
-                            <GraduationCap size={16} />
-                            Generate Questions
-                        </>
+                        <><GraduationCap size={20} strokeWidth={3} /> Generate Questions</>
                     )}
                 </button>
 
@@ -126,9 +115,9 @@ const InterviewPrepPage = () => {
                     <button
                         onClick={handleDownload}
                         disabled={downloading}
-                        className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                        className="flex items-center gap-2 px-6 py-4 border-[3px] border-zinc-900 text-zinc-900 bg-white rounded-xl font-black shadow-[4px_4px_0px_#18181b] hover:-translate-y-1 transition-all disabled:opacity-50 uppercase tracking-widest"
                     >
-                        {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                        {downloading ? <Loader2 size={18} className="animate-spin" strokeWidth={3} /> : <Download size={18} strokeWidth={3} />}
                         Download Report
                     </button>
                 )}
@@ -138,11 +127,11 @@ const InterviewPrepPage = () => {
             {loading && questions.length === 0 && (
                 <div className="space-y-4">
                     {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="animate-pulse bg-white rounded-xl border border-gray-100 p-5">
-                            <div className="h-4 bg-gray-200 rounded w-3/4 mb-3" />
-                            <div className="flex gap-2">
-                                <div className="h-5 bg-gray-100 rounded-full w-20" />
-                                <div className="h-5 bg-gray-100 rounded-full w-16" />
+                        <div key={i} className="animate-pulse bg-white rounded-[2rem] border-[3px] border-zinc-200 p-6">
+                            <div className="h-5 bg-zinc-200 rounded w-3/4 mb-4" />
+                            <div className="flex gap-3">
+                                <div className="h-6 bg-zinc-100 rounded-xl w-24" />
+                                <div className="h-6 bg-zinc-100 rounded-xl w-16" />
                             </div>
                         </div>
                     ))}
@@ -151,37 +140,37 @@ const InterviewPrepPage = () => {
 
             {/* Questions list */}
             {questions.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-5">
                     <AnimatePresence>
                         {questions.map((q, idx) => (
                             <motion.div
                                 key={idx}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                                className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+                                transition={{ delay: idx * 0.04 }}
+                                className="bg-white rounded-[2rem] border-[3px] border-zinc-900 shadow-[6px_6px_0px_#18181b] overflow-hidden"
                             >
-                                <div className="p-5">
-                                    <p className="text-sm font-medium text-gray-900 leading-relaxed mb-3">
-                                        {idx + 1}. {q.question}
+                                <div className="p-7">
+                                    <p className="text-base font-bold text-zinc-900 leading-relaxed mb-5">
+                                        <span className="font-black text-lime-600">{idx + 1}.</span> {q.question}
                                     </p>
 
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${TYPE_COLORS[q.type] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <span className={`text-xs font-black px-3 py-1.5 rounded-xl border-2 uppercase tracking-wider ${TYPE_COLORS[q.type] || 'bg-zinc-100 text-zinc-900 border-zinc-300'}`}>
                                             {q.type}
                                         </span>
-                                        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${DIFFICULTY_COLORS[q.difficulty] || 'bg-gray-50 text-gray-600'}`}>
+                                        <span className={`text-xs font-black px-3 py-1.5 rounded-xl border-2 uppercase tracking-wider ${DIFFICULTY_COLORS[q.difficulty] || 'bg-zinc-100 text-zinc-900 border-zinc-300'}`}>
                                             {q.difficulty}
                                         </span>
 
                                         <button
                                             onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
-                                            className="ml-auto flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                                            className="ml-auto flex items-center gap-2 text-xs font-black bg-white border-2 border-zinc-900 px-4 py-2 rounded-xl shadow-[2px_2px_0px_#18181b] hover:bg-lime-50 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_#18181b] transition-all uppercase tracking-widest"
                                         >
                                             {expandedIdx === idx ? (
-                                                <>Hide strategy <ChevronUp size={12} /></>
+                                                <>Hide strategy <ChevronUp size={14} strokeWidth={3} /></>
                                             ) : (
-                                                <>Suggested strategy <ChevronDown size={12} /></>
+                                                <>Strategy <ChevronDown size={14} strokeWidth={3} /></>
                                             )}
                                         </button>
                                     </div>
@@ -196,10 +185,15 @@ const InterviewPrepPage = () => {
                                             transition={{ duration: 0.2 }}
                                             className="overflow-hidden"
                                         >
-                                            <div className="px-5 pb-4 pt-2 border-t border-gray-50 bg-indigo-50/30">
-                                                <p className="text-xs text-gray-600 leading-relaxed">
-                                                    💡 {q.suggestedAnswer}
-                                                </p>
+                                            <div className="px-7 pb-7 pt-1 border-t-[3px] border-zinc-900 bg-lime-50">
+                                                <div className="flex items-start gap-3 mt-4">
+                                                    <div className="w-7 h-7 bg-lime-400 border-2 border-zinc-900 flex items-center justify-center rounded-lg shrink-0 mt-0.5">
+                                                        <Lightbulb size={14} className="text-zinc-900" strokeWidth={3} />
+                                                    </div>
+                                                    <p className="text-sm font-bold text-zinc-800 leading-relaxed">
+                                                        {q.suggestedAnswer}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </motion.div>
                                     )}

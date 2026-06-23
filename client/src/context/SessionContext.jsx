@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 const SessionContext = createContext();
 
 export const SessionProvider = ({ children }) => {
-    const [sessionId, setSessionId] = useState(null);
+    const [sessionId, setSessionId] = useState(() => localStorage.getItem('jdfit_active_session') || null);
     const [resumeFile, setResumeFile] = useState(null);
     const [jdFile, setJdFile] = useState(null);
     const [uploading, setUploading] = useState(false);
@@ -288,11 +288,14 @@ export const SessionProvider = ({ children }) => {
     useEffect(() => {
         fetchSessions().then(sessions => {
             if (!sessions) return;
-            const savedSessionId = localStorage.getItem('jdfit_active_session');
-            if (savedSessionId) {
-                const sessionToRestore = sessions.find(s => s.sessionId === savedSessionId);
+            // Use the state variable since we initialized it from localStorage synchronously
+            if (sessionId) {
+                const sessionToRestore = sessions.find(s => s.sessionId === sessionId);
                 if (sessionToRestore) {
                     loadSession(sessionToRestore);
+                } else {
+                    // Session not found (deleted or wrong user context)
+                    newSession();
                 }
             }
         });

@@ -5,9 +5,9 @@ import { useSession } from '../context/SessionContext';
 import { useAuth } from '../context/AuthContext';
 
 const confidenceColors = {
-    high: { border: 'border-l-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
-    medium: { border: 'border-l-amber-500', badge: 'bg-amber-100 text-amber-700' },
-    low: { border: 'border-l-red-500', badge: 'bg-red-100 text-red-700' }
+    high: { border: 'border-l-lime-400', badge: 'bg-lime-400 text-zinc-900 border-2 border-zinc-900' },
+    medium: { border: 'border-l-amber-400', badge: 'bg-amber-400 text-zinc-900 border-2 border-zinc-900' },
+    low: { border: 'border-l-rose-400', badge: 'bg-rose-400 text-zinc-900 border-2 border-zinc-900' }
 };
 
 const categoryLabels = {
@@ -102,10 +102,10 @@ const SuggestionsPanel = React.memo(function SuggestionsPanel() {
     // Not ready state
     if (!isReady) {
         return (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                <Lightbulb size={48} className="mb-4 opacity-50" />
-                <p className="text-lg font-medium">Upload Both Documents First</p>
-                <p className="text-sm mt-1">Suggestions require a completed ATS analysis.</p>
+            <div className="flex flex-col items-center justify-center py-16 text-zinc-400 border-[3px] border-zinc-200 border-dashed rounded-[2rem] bg-zinc-50">
+                <Lightbulb size={48} className="mb-4 opacity-50" strokeWidth={2} />
+                <p className="text-xl font-black uppercase tracking-tighter text-zinc-600">Upload Both Documents First</p>
+                <p className="text-sm font-bold mt-1 text-zinc-500">Suggestions require a completed ATS analysis.</p>
             </div>
         );
     }
@@ -113,17 +113,19 @@ const SuggestionsPanel = React.memo(function SuggestionsPanel() {
     // Initial state — hasn't loaded yet
     if (!suggestionsData && !loading) {
         return (
-            <div className="flex flex-col items-center justify-center py-16">
-                <Lightbulb size={48} className="mb-4 text-amber-400" />
-                <p className="text-lg font-semibold text-gray-700 mb-2">AI-Powered Bullet Improvements</p>
-                <p className="text-sm text-gray-500 mb-6 text-center max-w-md">
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center border-[3px] border-zinc-900 rounded-[2rem] shadow-[8px_8px_0px_#18181b] bg-white">
+                <div className="w-16 h-16 bg-lime-400 border-2 border-zinc-900 shadow-[4px_4px_0px_#18181b] rounded-2xl flex items-center justify-center mb-6">
+                    <Lightbulb size={32} className="text-zinc-900" strokeWidth={2.5} />
+                </div>
+                <p className="text-2xl font-black text-zinc-900 mb-3 uppercase tracking-tighter">AI-Powered Bullet Improvements</p>
+                <p className="text-sm font-bold text-zinc-500 mb-8 max-w-md">
                     Get targeted suggestions to strengthen your resume bullets against this specific job description.
                 </p>
                 <button
                     onClick={fetchSuggestions}
-                    className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-violet-700 transition-all shadow-lg shadow-indigo-200"
+                    className="px-8 py-4 bg-zinc-900 text-lime-400 rounded-xl font-black text-lg border-[3px] border-zinc-900 shadow-[6px_6px_0px_#a3e635] hover:-translate-y-1 hover:shadow-[8px_8px_0px_#a3e635] transition-all uppercase tracking-widest"
                 >
-                    Generate Suggestions
+                    Generate
                 </button>
             </div>
         );
@@ -132,13 +134,13 @@ const SuggestionsPanel = React.memo(function SuggestionsPanel() {
     // Loading state
     if (loading) {
         return (
-            <div className="space-y-4">
-                <div className="flex items-center gap-2 text-indigo-600 mb-6">
-                    <Loader2 size={20} className="animate-spin" />
-                    <span className="font-medium">Analyzing your resume bullets...</span>
+            <div className="space-y-6">
+                <div className="flex items-center gap-3 text-zinc-900 mb-8 p-4 bg-lime-400 border-2 border-zinc-900 shadow-[4px_4px_0px_#18181b] rounded-2xl w-fit font-black uppercase tracking-widest text-sm">
+                    <Loader2 size={24} className="animate-spin" strokeWidth={3} />
+                    <span>Analyzing your resume...</span>
                 </div>
                 {[1, 2, 3].map(i => (
-                    <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-32 border border-gray-200" />
+                    <div key={i} className="animate-pulse bg-zinc-100 rounded-[2rem] h-40 border-[3px] border-zinc-200" />
                 ))}
             </div>
         );
@@ -147,11 +149,11 @@ const SuggestionsPanel = React.memo(function SuggestionsPanel() {
     // Error state
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center py-16">
-                <p className="text-red-500 mb-4">{error}</p>
+            <div className="flex flex-col items-center justify-center py-16 border-[3px] border-rose-500 bg-rose-50 rounded-[2rem] shadow-[8px_8px_0px_#f43f5e]">
+                <p className="text-rose-600 font-black mb-6 flex items-center gap-2"><X size={24} /> {error}</p>
                 <button
                     onClick={fetchSuggestions}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="px-6 py-3 bg-zinc-900 text-white border-2 border-zinc-900 rounded-xl font-black shadow-[4px_4px_0px_#18181b] hover:-translate-y-1 hover:shadow-[6px_6px_0px_#18181b] transition-all uppercase tracking-widest"
                 >
                     Try Again
                 </button>
@@ -162,39 +164,23 @@ const SuggestionsPanel = React.memo(function SuggestionsPanel() {
     // Empty results
     if (totalCount === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                <CheckCircle2 size={48} className="mb-4 text-emerald-500" />
-                <p className="text-lg font-medium text-gray-700">Your resume looks strong!</p>
-                <p className="text-sm mt-1">No significant improvements were identified for this JD.</p>
+            <div className="flex flex-col items-center justify-center py-16 border-[3px] border-zinc-900 bg-lime-50 rounded-[2rem] shadow-[8px_8px_0px_#18181b]">
+                <div className="w-16 h-16 bg-lime-400 border-2 border-zinc-900 shadow-[4px_4px_0px_#18181b] rounded-2xl flex items-center justify-center mb-6">
+                    <CheckCircle2 size={32} className="text-zinc-900" strokeWidth={3} />
+                </div>
+                <p className="text-2xl font-black text-zinc-900 uppercase tracking-tighter">Your resume looks strong!</p>
+                <p className="text-sm font-bold text-zinc-600 mt-2">No significant improvements were identified for this JD.</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
-            {/* Progress Bar */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                        {acceptedCount} of {totalCount} suggestions copied
-                    </span>
-                    <span className="text-xs text-gray-500">{Math.round(progressPercent)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <motion.div
-                        className="bg-gradient-to-r from-emerald-500 to-green-500 h-2.5 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progressPercent}%` }}
-                        transition={{ duration: 0.5, ease: 'easeOut' }}
-                    />
-                </div>
-            </div>
-
-            {/* Regenerate button */}
+        <div className="space-y-8">
+            {/* Regenerate Button */}
             <div className="flex justify-end">
                 <button
                     onClick={fetchSuggestions}
-                    className="text-sm text-indigo-600 hover:text-indigo-800 font-medium px-3 py-1.5 hover:bg-indigo-50 rounded-lg transition-colors"
+                    className="px-6 py-3 text-sm text-zinc-900 bg-white border-[3px] border-zinc-900 font-black rounded-xl shadow-[4px_4px_0px_#18181b] hover:-translate-y-1 transition-all uppercase tracking-widest flex items-center gap-2"
                 >
                     ↻ Regenerate
                 </button>
@@ -211,51 +197,64 @@ const SuggestionsPanel = React.memo(function SuggestionsPanel() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, x: -200, transition: { duration: 0.3 } }}
-                            className={`bg-white rounded-xl border border-gray-200 border-l-4 ${colors.border} p-5 shadow-sm`}
+                            className={`bg-white rounded-[2rem] border-[3px] border-zinc-900 shadow-[8px_8px_0px_#18181b] p-8 relative overflow-hidden`}
                         >
-                            {/* Header */}
-                            <div className="flex items-center gap-2 mb-3">
-                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>
-                                    {suggestion.confidence}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                    {categoryLabels[suggestion.category] || suggestion.category}
-                                </span>
-                            </div>
+                            {/* Accent thick left border effect via pseudo-element if you wanted, or just a colored pill. Here we use pill. */}
+                            <div className={`absolute top-0 left-0 bottom-0 w-4 ${colors.border.replace('border-l-', 'bg-')} border-r-[3px] border-zinc-900`}></div>
 
-                            {/* Original bullet */}
-                            <div className="mb-3">
-                                <p className="text-xs font-medium text-gray-500 mb-1">Original</p>
-                                <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
-                                    "{suggestion.originalBullet}"
-                                </p>
-                            </div>
+                            <div className="ml-4">
+                                {/* Header */}
+                                <div className="flex items-center gap-3 mb-6">
+                                    <span className={`text-xs font-black px-3 py-1.5 rounded-lg shadow-[2px_2px_0px_#18181b] uppercase tracking-widest ${colors.badge}`}>
+                                        {suggestion.confidence}
+                                    </span>
+                                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest background-white border-2 border-zinc-200 px-3 py-1.5 rounded-lg">
+                                        {categoryLabels[suggestion.category] || suggestion.category}
+                                    </span>
+                                </div>
 
-                            {/* Reason */}
-                            <p className="text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-lg mb-3">
-                                💡 {suggestion.reason}
-                            </p>
+                                {/* Original bullet */}
+                                <div className="mb-6">
+                                    <p className="text-xs font-black text-zinc-500 mb-2 uppercase tracking-widest">Original</p>
+                                    <p className="text-sm font-semibold text-zinc-500 bg-zinc-50 p-4 rounded-2xl border-2 border-zinc-200 border-dashed line-through decoration-zinc-400">
+                                        "{suggestion.originalBullet}"
+                                    </p>
+                                </div>
 
-                            {/* Rewritten bullet */}
-                            <div className="mb-4">
-                                <p className="text-xs font-medium text-gray-500 mb-1">Suggested Rewrite</p>
-                                <p className="text-sm text-gray-900 bg-indigo-50 p-3 rounded-lg border border-indigo-100 font-medium">
-                                    {suggestion.rewrittenBullet}
-                                </p>
-                            </div>
+                                {/* Reason */}
+                                <div className="flex items-start gap-3 bg-white border-2 border-zinc-900 p-4 rounded-xl mb-6 shadow-[4px_4px_0px_#18181b] -translate-y-2 translate-x-2 w-[calc(100%-8px)]">
+                                    <Lightbulb size={20} className="text-zinc-900 shrink-0 mt-0.5" strokeWidth={2.5} />
+                                    <p className="text-sm font-bold text-zinc-900">
+                                        {suggestion.reason}
+                                    </p>
+                                </div>
 
-                            {/* Actions */}
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => handleCopy(suggestion)}
-                                    className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-100"
-                                >
-                                    {copiedId === suggestion.id ? (
-                                        <><Check size={14} /> Copied!</>
-                                    ) : (
-                                        <><Copy size={14} /> Copy to Clipboard</>
-                                    )}
-                                </button>
+                                {/* Rewritten bullet */}
+                                <div className="mb-8">
+                                    <p className="text-xs font-black text-zinc-500 mb-2 uppercase tracking-widest flex items-center gap-2">
+                                        <div className="w-5 h-5 bg-lime-400 rounded-md border-[1.5px] border-zinc-900 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-[12px] font-bold text-zinc-900">edit</span>
+                                        </div>
+                                        Suggested Rewrite
+                                    </p>
+                                    <p className="text-base text-zinc-900 bg-lime-50 p-5 rounded-2xl border-[3px] border-zinc-900 font-bold shadow-[4px_4px_0px_#18181b]">
+                                        {suggestion.rewrittenBullet}
+                                    </p>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center gap-3 mt-4">
+                                    <button
+                                        onClick={() => handleCopy(suggestion)}
+                                        className={`flex items-center gap-2 text-sm font-black px-6 py-3 border-[3px] border-zinc-900 rounded-xl transition-all uppercase tracking-widest shadow-[4px_4px_0px_#18181b] hover:-translate-y-1 hover:shadow-[6px_6px_0px_#18181b] ${copiedId === suggestion.id ? 'bg-lime-400 text-zinc-900' : 'bg-zinc-900 text-white'}`}
+                                    >
+                                        {copiedId === suggestion.id ? (
+                                            <><Check size={18} strokeWidth={3} /> Copied!</>
+                                        ) : (
+                                            <><Copy size={18} strokeWidth={2.5} /> Copy String</>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     );

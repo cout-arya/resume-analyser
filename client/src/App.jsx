@@ -28,15 +28,17 @@ function AnalyzerPage() {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* Left Sidebar: Uploads */}
       <div className="lg:col-span-4 flex flex-col gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <FileText size={20} className="text-blue-500" />
+        <div className="bg-white p-6 rounded-[2rem] border-[3px] border-zinc-900 shadow-[6px_6px_0px_#18181b]">
+          <h2 className="text-lg font-black text-zinc-900 uppercase tracking-tighter mb-5 flex items-center gap-3">
+            <span className="w-8 h-8 bg-lime-400 border-2 border-zinc-900 rounded-xl flex items-center justify-center">
+              <FileText size={16} className="text-zinc-900" strokeWidth={3} />
+            </span>
             Upload Documents
           </h2>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">1. Resume (PDF/DOCX)</p>
+              <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">1. Resume (PDF/DOCX)</p>
               <UploadZone
                 type="resume"
                 label="Upload Resume"
@@ -46,7 +48,7 @@ function AnalyzerPage() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">2. Job Description</p>
+              <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">2. Job Description</p>
               <UploadZone
                 type="jd"
                 label="Upload Job Description"
@@ -57,20 +59,22 @@ function AnalyzerPage() {
           </div>
         </div>
 
-        <div className="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
-          <h3 className="font-semibold text-indigo-900 mb-2">How to use</h3>
-          <ul className="text-sm text-indigo-800 space-y-2 list-disc pl-4">
-            <li>Upload your formatted Resume.</li>
-            <li>Upload the JD or paste a job listing URL.</li>
-            <li>Navigate to <strong>ATS Score</strong>, <strong>Skill Gap</strong>, <strong>Suggestions</strong>, and more.</li>
-            <li>Ask the AI Assistant questions about your fit, missing skills, or interview prep.</li>
+        <div className="bg-lime-50 p-6 rounded-[2rem] border-[3px] border-zinc-900 shadow-[6px_6px_0px_#18181b]">
+          <h3 className="font-black text-zinc-900 mb-3 uppercase tracking-wider text-sm flex items-center gap-2">
+            <span className="text-lg">💡</span> How to use
+          </h3>
+          <ul className="text-sm font-bold text-zinc-700 space-y-2.5">
+            <li className="flex items-start gap-2"><span className="text-lime-600 font-black mt-0.5">→</span> Upload your formatted Resume.</li>
+            <li className="flex items-start gap-2"><span className="text-lime-600 font-black mt-0.5">→</span> Upload the Job Description file.</li>
+            <li className="flex items-start gap-2"><span className="text-lime-600 font-black mt-0.5">→</span> Navigate to <strong>ATS Score</strong>, <strong>Skill Gap</strong>, <strong>Suggestions</strong>, and more.</li>
+            <li className="flex items-start gap-2"><span className="text-lime-600 font-black mt-0.5">→</span> Ask the AI Assistant questions about your fit, missing skills, or interview prep.</li>
           </ul>
         </div>
       </div>
 
       {/* Right Area: Chat */}
       <div className="lg:col-span-8">
-        <div className="h-[600px]">
+        <div className="h-[calc(100vh-10rem)] min-h-[600px]">
           <ChatInterface sessionId={sessionId} isReady={isReady} />
         </div>
       </div>
@@ -104,8 +108,8 @@ function AuthRedirect({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#f3f6ec]">
+        <div className="w-14 h-14 border-[4px] border-zinc-900 border-t-lime-400 rounded-full animate-spin shadow-[4px_4px_0px_#18181b]"></div>
       </div>
     );
   }

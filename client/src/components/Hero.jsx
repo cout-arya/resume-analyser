@@ -1,135 +1,129 @@
 export default function Hero({ onStart }) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 pt-32 pb-40">
-      {/* Dynamic Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-secondary/10 rounded-full blur-[100px] pointer-events-none"></div>
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
+    <section className="relative overflow-hidden bg-[#f3f6ec] pt-32 pb-40">
+
+      {/* Subtle modern gradients matching the landing page reference */}
+      <div className="absolute top-0 left-0 w-full h-[800px] bg-gradient-to-br from-[#effff0] to-[#f4f7ed] -z-10"></div>
+      <div className="absolute bottom-0 left-0 w-full h-[500px] bg-gradient-to-t from-[#e4ecc9]/30 to-transparent -z-10"></div>
 
       <div className="max-w-7xl mx-auto px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
-          
+
           {/* Left Text Content */}
-          <div className="text-gray-900">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/20 text-primary font-bold text-xs mb-8 tracking-wider uppercase backdrop-blur-md shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-              The Next Generation of Hiring
+          <div className="text-zinc-900 relative z-20">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-zinc-200 text-zinc-900 font-bold text-xs mb-8 tracking-wider uppercase shadow-[2px_2px_0px_#18181b]">
+              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-lime-400">
+                <span className="material-symbols-outlined text-[12px] text-zinc-900">bolt</span>
+              </div>
+              GetReady AI
             </div>
 
-            <h1 className="font-headline font-extrabold text-5xl md:text-7xl tracking-tighter leading-tight mb-6">
-              Recruitment, <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Perfectly Aligned.</span>
+            <h1 className="font-headline font-extrabold text-5xl md:text-7xl tracking-tighter leading-tight mb-6 text-zinc-900">
+              Real Interview Practice <br />
+              with Instant AI <br />
+              <span className="relative inline-block mt-2">
+                <span className="relative z-10">Feedback</span>
+                <span className="absolute bottom-0 left-0 w-full h-4 bg-lime-400/50 -rotate-1 z-0"></span>
+              </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-lg leading-relaxed">
-              JDFit uses advanced RAG architecture and Deep Learning to instantly map your professional DNA against market-leading job descriptions with 98% accuracy.
+            <p className="text-lg md:text-xl text-zinc-600 mb-10 max-w-lg leading-relaxed font-medium">
+              JDFit helps you practice real interview questions and receive AI feedback on your resume matching and answers — instantly.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-5">
+            <div className="flex flex-col sm:flex-row gap-5 items-center">
               <button
                 onClick={onStart}
-                className="group relative px-8 py-4 bg-primary text-white rounded-xl font-bold text-lg hover:bg-primary/90 transition-all shadow-[0_10px_40px_-10px_rgba(79,70,229,0.5)] overflow-hidden"
+                className="group flex flex-row items-center gap-3 px-8 py-4 bg-zinc-900 text-white rounded-[2rem] font-bold text-lg hover:bg-zinc-800 hover:-translate-y-1 transition-all shadow-[0px_8px_20px_rgba(0,0,0,0.15)] shadow-[0px_4px_0px_#4d4d4d]"
               >
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                <span className="relative flex items-center gap-2">
-                  Analyze Resume
-                  <span className="material-symbols-outlined text-base transition-transform group-hover:translate-x-1">arrow_forward</span>
+                PRACTICE
+                <span className="material-symbols-outlined bg-white text-zinc-900 rounded-full w-8 h-8 flex items-center justify-center text-sm group-hover:translate-x-1 transition-transform">
+                  arrow_forward
                 </span>
               </button>
 
-              <button className="flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-lg text-gray-700 border border-gray-200 bg-white hover:bg-gray-50 transition-all shadow-sm">
-                <span className="material-symbols-outlined text-xl text-primary">play_circle</span>
-                See How It Works
+              <button className="flex items-center gap-3 px-8 py-4 rounded-[2rem] font-bold text-lg text-zinc-900 bg-white hover:bg-zinc-50 transition-all shadow-[0px_8px_20px_rgba(0,0,0,0.05)] shadow-[0px_4px_0px_#e5e7eb] border border-zinc-200">
+                VIEW DEMO
               </button>
             </div>
-            
-            <div className="mt-12 flex items-center gap-4 text-sm text-gray-600 font-medium">
-              <div className="flex -space-x-3">
-                <img src="https://i.pravatar.cc/100?img=1" alt="User" className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
-                <img src="https://i.pravatar.cc/100?img=2" alt="User" className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
-                <img src="https://i.pravatar.cc/100?img=3" alt="User" className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
-              </div>
-              <p>Trusted by 10,000+ top candidates and recruiters.</p>
+
+            <div className="mt-16 flex flex-wrap items-center gap-3 text-sm text-zinc-600 font-bold">
+              <span className="px-4 py-2 bg-white rounded-full shadow-[2px_2px_0px_#e5e7eb] border border-zinc-100">real mock interviews</span>
+              <span className="px-4 py-2 bg-lime-400 text-zinc-900 rounded-full shadow-[2px_2px_0px_#65a30d]">interview analytics</span>
+              <span className="px-4 py-2 bg-white rounded-full shadow-[2px_2px_0px_#e5e7eb] border border-zinc-100">instant ai feedback</span>
             </div>
           </div>
 
-          {/* Right UI Mockup */}
-          <div className="relative hidden lg:block">
-            {/* Main Glass Panel */}
-            <div className="relative bg-white/70 backdrop-blur-2xl border border-white rounded-3xl p-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] transform rotate-1 hover:rotate-0 transition-transform duration-500">
-              <div className="flex items-center justify-between mb-8 border-b border-gray-100 pb-4">
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-error"></div>
-                  <div className="w-3 h-3 rounded-full bg-warning"></div>
-                  <div className="w-3 h-3 rounded-full bg-success"></div>
-                </div>
-                <div className="text-xs font-mono text-gray-500">JDFit Analysis Engine</div>
-              </div>
-              
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <span className="material-symbols-outlined">description</span>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-lg">Senior Software Engineer</h3>
-                      <p className="text-gray-500 text-sm">Resume vs Job Description Match</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-black text-success">92%</div>
-                    <div className="text-xs font-bold text-success uppercase tracking-wider">Excellent Fit</div>
-                  </div>
-                </div>
+          {/* Right UI Mockup / 3D Layout */}
+          <div className="relative hidden lg:block h-[600px]">
 
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">Semantic Alignment</span>
-                      <span className="text-gray-900 font-bold">28/30</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                      <div className="bg-gradient-to-r from-primary to-secondary w-[93%] h-full rounded-full shadow-inner"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">Keyword Coverage</span>
-                      <span className="text-gray-900 font-bold">22/25</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                      <div className="bg-primary w-[88%] h-full rounded-full shadow-inner"></div>
-                    </div>
-                  </div>
-                </div>
+            {/* Main Center Image */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[480px] bg-zinc-200 rounded-[2.5rem] overflow-hidden shadow-[0px_20px_50px_-10px_rgba(0,0,0,0.3)] z-10 transform rotate-2 hover:rotate-0 transition-transform duration-500 border-[8px] border-white ring-1 ring-zinc-200">
+              <img src="/images/interview_illustration.png" alt="Interview" className="w-full h-full object-cover" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80' }} />
+
+              {/* Glass overlay text */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-4/5 bg-white/80 backdrop-blur-md px-4 py-3 rounded-2xl shadow-sm text-center border border-white">
+                <span className="font-bold text-zinc-800 text-sm">Tell me about yourself.</span>
               </div>
             </div>
 
-            {/* Floating Card */}
-            <div className="absolute -bottom-10 -left-10 bg-white border border-gray-100 rounded-2xl p-5 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] transform -rotate-3 animate-float">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="material-symbols-outlined text-success">check_circle</span>
-                <span className="font-bold text-gray-900 text-sm">Skill Gap Identified</span>
+            {/* Floating Card: 50+ Roles (Lime) */}
+            <div className="absolute top-10 left-0 bg-lime-400 rounded-2xl p-5 shadow-[4px_8px_0px_#18181b] border-2 border-zinc-900 z-20 transform -rotate-3 animate-float">
+              <div className="flex items-center justify-between gap-4 mb-2">
+                <span className="text-3xl font-black text-zinc-900">50+</span>
+                <span className="material-symbols-outlined text-zinc-900 text-xl">work</span>
               </div>
-              <p className="text-xs text-gray-600 max-w-[200px]">Candidate shows strong React experience, but lacks recent AWS Lambda exposure. View suggested prep.</p>
+              <p className="text-xs font-bold text-zinc-800 max-w-[100px] leading-tight">roles and interview scenarios</p>
             </div>
+
+            {/* Floating Card: 100+ Questions (Dark) */}
+            <div className="absolute top-40 -left-12 bg-zinc-900 rounded-3xl p-5 shadow-[8px_16px_30px_-5px_rgba(0,0,0,0.2)] border border-zinc-700 z-20 animate-float" style={{ animationDelay: '1s' }}>
+              <div className="flex items-center justify-between gap-6 mb-2">
+                <span className="text-3xl font-black text-white">100+</span>
+                <span className="material-symbols-outlined text-lime-400">mic</span>
+              </div>
+              <p className="text-xs font-medium text-zinc-400 max-w-[120px] leading-tight">interview questions covered</p>
+            </div>
+
+            {/* Floating Card: 95% Confidence (White) */}
+            <div className="absolute top-20 -right-8 bg-white rounded-3xl p-6 shadow-[0px_10px_30px_rgba(0,0,0,0.1)] border border-zinc-100 z-0 transform rotate-6 animate-float" style={{ animationDelay: '0.5s' }}>
+              <div className="flex items-start justify-between gap-8 mb-3">
+                <span className="text-4xl font-headline font-black text-zinc-900">95%</span>
+                <span className="material-symbols-outlined bg-zinc-100 p-2 rounded-xl text-zinc-900">trending_up</span>
+              </div>
+              <p className="text-xs font-bold text-zinc-500 max-w-[120px] leading-relaxed">of candidates feel more confident after practicing</p>
+            </div>
+
+            {/* Floating Small Video Portrait */}
+            <div className="absolute bottom-20 -left-16 w-32 h-40 bg-zinc-800 rounded-2xl overflow-hidden shadow-[4px_4px_0px_#a3e635] border-4 border-zinc-900 z-20 animate-float" style={{ animationDelay: '2s' }}>
+              <img src="https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=300&q=80" alt="Student" className="w-full h-full object-cover opacity-80" />
+              <div className="absolute bottom-2 left-0 w-full text-center">
+                <span className="text-[9px] bg-black/60 text-white px-2 py-1 rounded-full">What are your weaknesses?</span>
+              </div>
+            </div>
+
+            {/* Floating Small Video Portrait 2 */}
+            <div className="absolute top-1/2 -translate-y-1/2 -right-10 w-24 h-32 bg-white rounded-2xl overflow-hidden shadow-xl border-4 border-white z-20 animate-float" style={{ animationDelay: '1.5s' }}>
+              <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80" alt="Interviewer" className="w-full h-full object-cover" />
+            </div>
+
           </div>
 
         </div>
       </div>
-      
-      {/* Tailwind Animation for Shimmer and Float */}
-      <style dangerouslySetInnerHTML={{__html: `
+
+      {/* CSS Animations */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes shimmer {
           100% { transform: translateX(100%); }
         }
         @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(-3deg); }
-          50% { transform: translateY(-10px) rotate(-3deg); }
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-12px); }
         }
         .animate-float {
-          animation: float 4s ease-in-out infinite;
+          animation: float 5s ease-in-out infinite;
         }
       `}} />
     </section>
