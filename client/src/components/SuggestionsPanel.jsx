@@ -95,7 +95,7 @@ const SuggestionsPanel = React.memo(function SuggestionsPanel() {
 
     const suggestions = suggestionsData?.suggestions || [];
     const visibleSuggestions = suggestions;
-    const acceptedCount = suggestions.filter(s => s.accepted).length;
+
     const totalCount = suggestions.length;
 
 
