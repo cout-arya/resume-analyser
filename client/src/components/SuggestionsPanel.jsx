@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, Copy, Loader2, Lightbulb, CheckCircle2 } from 'lucide-react';
 import { useSession } from '../context/SessionContext';
@@ -37,8 +38,7 @@ const SuggestionsPanel = React.memo(function SuggestionsPanel() {
 
         try {
             // Get texts from session — we need resume + JD text
-            const textsRes = await api.get(`/api/analyze/cached/${sessionId}`);
-            const cachedData = textsRes.data;
+
 
             // We need resumeText and jdText — fetch from session files
             const sessionsRes = await api.get('/api/sessions');
@@ -97,7 +97,7 @@ const SuggestionsPanel = React.memo(function SuggestionsPanel() {
     const visibleSuggestions = suggestions;
     const acceptedCount = suggestions.filter(s => s.accepted).length;
     const totalCount = suggestions.length;
-    const progressPercent = totalCount > 0 ? (acceptedCount / totalCount) * 100 : 0;
+
 
     // Not ready state
     if (!isReady) {

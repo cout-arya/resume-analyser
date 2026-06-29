@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import UploadZone from './components/FileUpload';
@@ -21,7 +21,6 @@ import { SessionProvider, useSession } from './context/SessionContext';
  */
 function AnalyzerPage() {
   const { sessionId, resumeFile, jdFile, isReady, handleUpload } = useSession();
-  const { api } = useAuth();
   // JD URL Scraping removed
 
   return (

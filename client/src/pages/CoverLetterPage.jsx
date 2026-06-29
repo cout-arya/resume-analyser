@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import { FileSignature, Download, RefreshCw, Loader2, Send, FileText } from 'lucide-react';
 import { useSession } from '../context/SessionContext';
